@@ -1,0 +1,8 @@
+streamlit
+pandas
+numpy
+matplotlib
+pymc
+arviz
+copulae
+scipy
