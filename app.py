@@ -18,12 +18,42 @@ except ImportError:
     psycho_risk_screen = None
     _ALG_AVAILABLE = False
 
-# ========== matplotlib中文设置 ==========
-try:
-    plt.rcParams['font.sans-serif'] = ['Noto Sans CJK SC', 'SimHei', 'DejaVu Sans']
+# ========== 中文字体自动兼容（本地Windows / 云端Linux 都能显示） ==========
+import matplotlib.font_manager as fm
+
+
+def _setup_cjk_font():
+    # 1) 直接注册常见中文字体文件，绕过 matplotlib 字体缓存不刷新的坑
+    font_paths = [
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",   # 云端：fonts-noto-cjk（ttc首面为JP，汉字齐全）
+        "/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf",
+        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",             # 文泉驿正黑
+        "C:/Windows/Fonts/msyh.ttc",                                # Windows 微软雅黑
+        "C:/Windows/Fonts/msyhbd.ttc",
+        "C:/Windows/Fonts/simhei.ttf",                              # Windows 黑体
+    ]
+    for fp in font_paths:
+        if os.path.exists(fp):
+            try:
+                fm.fontManager.addfont(fp)
+            except Exception:
+                pass
+
+    # 2) 按优先级挑选可用的中文字体名（SC/JP 均可显示汉字）
+    candidates = [
+        "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", "SimHei",
+        "Noto Sans CJK JP", "Noto Sans CJK KR", "WenQuanYi Zen Hei",
+        "PingFang SC", "Droid Sans Fallback",
+    ]
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            plt.rcParams['font.sans-serif'] = [name, 'DejaVu Sans']
+            break
     plt.rcParams['axes.unicode_minus'] = False
-except Exception:
-    pass
+
+
+_setup_cjk_font()
 
 # ========== 页面基础配置 ==========
 st.set_page_config(
