@@ -2,13 +2,24 @@
 """
 国创项目：高校心理健康动态监测与智能预警平台
 启动命令：streamlit run app.py
-【终极修复版】selectbox导航 + session字典存储 + 结果持久展示
+【线上兼容版】保留全部算法代码，云端仅展示界面不执行重运算
 """
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from psycho_screen import psycho_risk_screen
+import os
+
+# ========== 环境判断：云端只展示界面，本地完整跑算法 ==========
+IS_CLOUD = os.path.exists("/mount/src")  # Streamlit Cloud特有路径
+
+# 算法包延迟导入，云端没装copulae也不会崩溃
+try:
+    from psycho_screen import psycho_risk_screen
+    _ALG_AVAILABLE = True
+except ImportError:
+    psycho_risk_screen = None
+    _ALG_AVAILABLE = False
 
 # ========== matplotlib中文设置 ==========
 try:
@@ -49,7 +60,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ========== session状态初始化（用字典key方式，最稳） ==========
+# ========== session状态初始化 ==========
 def init_session():
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
@@ -87,7 +98,7 @@ def login_page():
         st.divider()
         st.caption("账号：任意用户名 + 任意密码即可登录")
 
-# ========== 侧边栏渲染【改用selectbox，最稳定】 ==========
+# ========== 侧边栏渲染 ==========
 def render_sidebar():
     with st.sidebar:
         st.markdown("### 🧠 心理预警平台")
@@ -96,7 +107,6 @@ def render_sidebar():
         st.markdown("🏫 角色：心理中心老师")
         st.markdown("---")
         st.markdown("#### 📋 功能导航")
-        # 改用selectbox，不会触发隐性rerun清空session
         st.session_state["current_page"] = st.selectbox(
             label="选择功能页面",
             options=["数据上传与筛查", "风险分级统计", "结果报告导出"],
@@ -114,7 +124,7 @@ def render_sidebar():
             st.session_state["tau_mean"] = None
             st.rerun()
 
-# ========== 结果展示函数（抽出来，切换回来也能直接显示） ==========
+# ========== 结果展示函数 ==========
 def show_results(df_out, tau_mean, trace):
     st.success(f"✅ 计算完成，检测到总分变点位置：{tau_mean}")
     risk_cnt = df_out["风险等级"].value_counts()
@@ -176,12 +186,14 @@ def main_page():
         </div>
         """, unsafe_allow_html=True)
 
-        st.info("⚠️线上演示Demo受公有云算力内存限制，**仅支持300行以内小样本Excel测试**，大规模心理普查数据请在本地Anaconda环境运行完整算法。")
+        if IS_CLOUD:
+            st.info("⚠️线上演示版本仅提供界面与基础统计展示，贝叶斯‑Copula核心筛查算法需在本地Anaconda环境运行，完整效果参见配套录屏视频。")
+        else:
+            st.info("⚠️线上演示Demo受公有云算力内存限制，仅支持300行以内小样本Excel测试，大规模心理普查数据请在本地Anaconda环境运行完整算法。")
 
-        # 如果已经有结果，先展示结果（切换回来不会丢）
+        # 已有结果展示
         if st.session_state["df_out"] is not None:
             st.warning("⚠️ 当前已有筛查结果，重新上传文件并点击「开始风险筛查」将覆盖旧结果")
-            # 注意：trace没存session，所以这里只展示表格和统计，不重绘贝叶斯后验图
             df_show = st.session_state["df_out"]
             tau_show = st.session_state["tau_mean"]
             st.success(f"✅ 上次筛查结果（变点位置：{tau_show}）")
@@ -209,13 +221,15 @@ def main_page():
 
             dims = st.multiselect("请选择量表维度列（至少选2列）", df_upload.columns.tolist())
             if len(dims) >= 2 and st.button("🚀 开始风险筛查", type="primary"):
-                with st.spinner("贝叶斯模型采样计算中，请等待..."):
-                    df_out, trace, tau_mean = psycho_risk_screen(df_upload, dims)
-                # 存入session
-                st.session_state["df_out"] = df_out
-                st.session_state["tau_mean"] = tau_mean
-                # 展示完整结果（含trace绘图）
-                show_results(df_out, tau_mean, trace)
+                # ========== 关键：云端不执行算法，只弹提示 ==========
+                if IS_CLOUD or not _ALG_AVAILABLE:
+                    st.info("⚠️高阶贝叶斯‑Copula筛查算法仅支持本地环境运行，线上版本仅提供基础统计与界面演示。完整算法运行请在本地Anaconda环境执行 app.py。")
+                else:
+                    with st.spinner("贝叶斯模型采样计算中，请等待..."):
+                        df_out, trace, tau_mean = psycho_risk_screen(df_upload, dims)
+                    st.session_state["df_out"] = df_out
+                    st.session_state["tau_mean"] = tau_mean
+                    show_results(df_out, tau_mean, trace)
 
     elif page == "风险分级统计":
         st.title("📈 风险分级统计")

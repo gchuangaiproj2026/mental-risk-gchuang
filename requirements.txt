@@ -1,8 +1,8 @@
 pandas
+pandas
 numpy
 openpyxl
 scipy
-copulae
-scikit‑learn
+scikit-learn
 streamlit
 matplotlib
