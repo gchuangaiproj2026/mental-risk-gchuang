@@ -1,8 +1,8 @@
-streamlit
 pandas
 numpy
-matplotlib
-pymc
-arviz
-copulae
+openpyxl
 scipy
+copulae
+scikit‑learn
+streamlit
+matplotlib
