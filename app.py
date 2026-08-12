@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 """
-国创项目：多角色高校心理健康动态监测与智能预警平台
+国创项目：多角色高校心理健康动态监测与智能预警平台【全功能增强版】
 三角色：学生端 / 教师端 / 管理端
 核心算法：贝叶斯在线变点检测 + Copula相依结构
+新增：全端图表可视化、交互式筛选、多文件导出、分层统计、历史存档、全局参数配置
 启动：streamlit run app.py
 """
 import streamlit as st
@@ -11,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from datetime import datetime
+import io
 
 # 加载核心筛查算法
 try:
@@ -100,29 +102,41 @@ st.markdown("""
     max-width:950px;
     margin:0 auto 2rem auto;
 }
+.stExpander {
+    border-radius: 8px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ===================== Session状态初始化 =====================
 def init_session():
     if "page_root" not in st.session_state:
-        st.session_state["page_root"] = "home"  # home/role_login/main
+        st.session_state["page_root"] = "home"
     if "role" not in st.session_state:
-        st.session_state["role"] = ""  # student/teacher/admin
+        st.session_state["role"] = ""
     if "username" not in st.session_state:
         st.session_state["username"] = ""
     if "current_module" not in st.session_state:
         st.session_state["current_module"] = ""
-    # 算法缓存数据
+    # 算法全局缓存
     if "df_screen_result" not in st.session_state:
         st.session_state["df_screen_result"] = None
     if "tau_cache" not in st.session_state:
         st.session_state["tau_cache"] = None
     if "trace_cache" not in st.session_state:
         st.session_state["trace_cache"] = None
-    # 学生自评缓存
-    if "student_self_data" not in st.session_state:
-        st.session_state["student_self_data"] = None
+    if "copula_score" not in st.session_state:
+        st.session_state["copula_score"] = None
+    if "batch_note" not in st.session_state:
+        st.session_state["batch_note"] = ""
+    # 学生自评存档
+    if "student_self_history" not in st.session_state:
+        st.session_state["student_self_history"] = []
+    # 全局风险阈值
+    if "global_high_thr" not in st.session_state:
+        st.session_state["global_high_thr"] = 1.5
+    if "global_mid_thr" not in st.session_state:
+        st.session_state["global_mid_thr"] = 0.5
 init_session()
 
 # ===================== 门户首页（三角色选择入口） =====================
@@ -136,7 +150,7 @@ def render_home_page():
         st.markdown("""
         <div class="role-card">
             <h2>👨‍🎓 学生端</h2>
-            <p>心理普查自评、个人状态画像、个性化心理建议</p>
+            <p>心理普查自评、多维度状态雷达画像、历史存档、个性化心理疏导建议、自评数据导出</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("进入学生端系统", use_container_width=True, type="secondary"):
@@ -147,7 +161,7 @@ def render_home_page():
         st.markdown("""
         <div class="role-card">
             <h2>👩‍🏫 教师端</h2>
-            <p>批量风险筛查、个案追踪、预警管理、班级趋势分析</p>
+            <p>批量贝叶斯-Copula风险筛查、全套算法可视化图表、预警管理、个案追踪、班级趋势、多报表导出</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("进入教师端系统", use_container_width=True, type="primary"):
@@ -158,7 +172,7 @@ def render_home_page():
         st.markdown("""
         <div class="role-card">
             <h2>🏛️ 管理端</h2>
-            <p>全校数据决策、整体趋势报告、账号与系统配置</p>
+            <p>全校数据决策看板、多批次趋势对比、年级分层统计、全校综合报告、账号权限、全局算法参数配置</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("进入管理端系统", use_container_width=True, type="secondary"):
@@ -208,198 +222,364 @@ def render_sidebar():
         st.markdown("#### 功能模块导航")
         module_list = []
         if role == "student":
-            module_list = ["心理普查（自评问卷）", "个人状态画像", "个性化心理建议"]
+            module_list = ["心理普查（自评问卷）", "个人状态画像雷达图", "历史自评存档", "个性化心理建议库"]
         elif role == "teacher":
-            module_list = ["心理普查批量筛查", "风险分析总览", "预警管理", "个案追踪", "班级趋势分析"]
+            module_list = ["心理普查批量筛查", "风险分级统计看板", "高危预警管理", "学生个案追踪档案", "班级趋势分析图表"]
         elif role == "admin":
-            module_list = ["全校数据决策", "全校趋势分析", "学校综合报告", "用户账号管理", "系统设置"]
+            module_list = ["全校数据决策总看板", "全校多批次趋势对比", "学校综合报告生成", "平台账号权限管理", "全局算法参数配置"]
         st.session_state["current_module"] = st.selectbox("选择模块", module_list, label_visibility="collapsed")
         st.markdown("---")
         if st.button("退出登录", use_container_width=True):
-            # 清空全部缓存
             st.session_state["page_root"] = "home"
             st.session_state["role"] = ""
             st.session_state["username"] = ""
-            st.session_state["df_screen_result"] = None
-            st.session_state["student_self_data"] = None
             st.rerun()
 
-# ===================== 学生端全部模块渲染 =====================
+# ===================== 【增强完整版】学生端全部模块 =====================
 def render_student_module(module):
+    history = st.session_state["student_self_history"]
     if module == "心理普查（自评问卷）":
         st.header("📝 学生心理自评普查问卷")
-        st.info("填写量表完成自评，系统将生成你的心理状态数据，仅供本人与心理中心查阅")
-        with st.form("self_form"):
+        st.info("填写量表完成自评，自动存档历史记录，生成多维心理画像")
+        with st.form("self_form", clear_on_submit=True):
             anxiety = st.slider("焦虑维度得分（0-40）",0,40,10)
             depression = st.slider("抑郁维度得分（0-40）",0,40,8)
             stress = st.slider("压力维度得分（0-40）",0,40,12)
             sleep = st.slider("睡眠障碍（0-30）",0,30,5)
             social = st.slider("社交回避（0-30）",0,30,4)
-            submit = st.form_submit_button("提交自评数据")
+            submit = st.form_submit_button("提交自评并存档")
         if submit:
+            now = datetime.now().strftime("%Y-%m-%d %H:%M")
             self_data = pd.DataFrame({
+                "自评时间":[now],
                 "焦虑":[anxiety],"抑郁":[depression],"压力":[stress],
-                "睡眠障碍":[sleep],"社交回避":[social]
+                "睡眠障碍":[sleep],"社交回避":[social],
+                "总分":[anxiety+depression+stress+sleep+social]
             })
-            st.session_state["student_self_data"] = self_data
-            st.success("自评提交成功！前往【个人状态画像】查看分析结果")
-    elif module == "个人状态画像":
-        st.header("📊 个人心理状态画像")
-        if st.session_state["student_self_data"] is None:
-            st.warning("请先完成心理普查自评问卷")
+            history.append(self_data)
+            st.session_state["student_self_history"] = history
+            st.success(f"自评提交成功，已保存至历史存档，提交时间：{now}")
+    elif module == "个人状态画像雷达图":
+        st.header("📊 个人多维度心理状态雷达画像")
+        if len(history) == 0:
+            st.warning("请先完成心理普查自评问卷生成数据")
         else:
-            df = st.session_state["student_self_data"]
-            dim_cols = ["焦虑","抑郁","压力","睡眠障碍","社交回避"]
-            st.dataframe(df, hide_index=True)
-            fig, ax = plt.subplots(figsize=(8,5))
-            ax.bar(dim_cols, df.iloc[0].values, color="#5c7cfa")
-            ax.set_title("个人各维度得分分布")
-            plt.xticks(rotation=30)
+            latest = history[-1]
+            dims = ["焦虑","抑郁","压力","睡眠障碍","社交回避"]
+            values = latest[dims].iloc[0].values
+            st.subheader("最新自评数据")
+            st.dataframe(latest, hide_index=True, use_container_width=True)
+            # 绘制雷达图
+            fig = plt.figure(figsize=(8,8))
+            ax = fig.add_subplot(111, polar=True)
+            angles = np.linspace(0, 2*np.pi, len(dims), endpoint=False).tolist()
+            values_plot = np.concatenate((values, [values[0]]))
+            angles_plot = np.concatenate((angles, [angles[0]]))
+            ax.plot(angles_plot, values_plot, color="#5c7cfa", linewidth=2)
+            ax.fill(angles_plot, values_plot, color="#5c7cfa", alpha=0.25)
+            ax.set_xticks(angles)
+            ax.set_xticklabels(dims)
+            ax.set_title("个人心理五维度雷达画像", fontsize=14)
             st.pyplot(fig)
-            total = df[dim_cols].sum(axis=1).iloc[0]
-            st.metric("心理总分", value=total)
-    elif module == "个性化心理建议":
-        st.header("💡 个性化心理疏导建议")
-        if st.session_state["student_self_data"] is None:
-            st.warning("请先完成心理普查自评问卷")
+            # 总分指标
+            st.metric("当前心理总分", value=int(latest["总分"].iloc[0]))
+            # 导出自评数据
+            all_history = pd.concat(history, ignore_index=True)
+            csv = all_history.to_csv(index=False, encoding="utf_8_sig")
+            st.download_button("📥 导出全部自评历史CSV", data=csv, file_name="学生自评历史记录.csv")
+    elif module == "历史自评存档":
+        st.header("🗃️ 个人自评历史存档记录")
+        if len(history) == 0:
+            st.info("暂无自评记录，请前往普查问卷提交数据")
         else:
-            df = st.session_state["student_self_data"]
-            a = df["焦虑"].iloc[0]
-            d = df["抑郁"].iloc[0]
-            s = df["压力"].iloc[0]
-            st.subheader("智能分析建议")
+            all_df = pd.concat(history, ignore_index=True)
+            st.dataframe(all_df, use_container_width=True)
+            # 时序趋势图
+            fig, ax = plt.subplots(figsize=(12,5))
+            ax.plot(all_df["自评时间"], all_df["总分"], marker="o", color="#7950f2")
+            ax.set_title("历次自评总分变化趋势")
+            ax.tick_params(axis='x', rotation=30)
+            st.pyplot(fig)
+    elif module == "个性化心理建议库":
+        st.header("💡 分级个性化心理疏导建议库")
+        if len(history) == 0:
+            st.warning("请先完成自评获取分析建议")
+        else:
+            latest = history[-1]
+            a = latest["焦虑"].iloc[0]
+            d = latest["抑郁"].iloc[0]
+            s = latest["压力"].iloc[0]
+            slp = latest["睡眠障碍"].iloc[0]
+            soc = latest["社交回避"].iloc[0]
+            st.subheader("智能分级疏导建议")
+            suggest_list = []
             if a >=25:
-                st.markdown("- 焦虑偏高：建议每日20分钟深呼吸冥想，定期预约心理咨询")
+                st.error("🔴 焦虑指标偏高：每日20分钟正念呼吸训练，每周预约心理中心一对一咨询")
+                suggest_list.append("焦虑偏高：坚持冥想放松，减少长期独处")
+            elif a >=15:
+                st.warning("🟡 轻度焦虑：睡前减少刷手机，增加户外散步")
+                suggest_list.append("轻度焦虑：调整作息，增加运动")
             if d >=22:
-                st.markdown("- 抑郁倾向：多参与社团户外活动，减少独处熬夜")
+                st.error("🔴 抑郁倾向明显：主动参与班级社团活动，避免熬夜封闭自己")
+                suggest_list.append("抑郁倾向：多与人交流，必要时线下心理咨询")
             if s >=28:
-                st.markdown("- 学业压力过大：拆分学习目标，增加运动放松时间")
-            st.info("若多项指标偏高，可前往学校心理中心线下咨询")
+                st.error("🔴 学业压力过载：拆分学习目标，每日保证30分钟运动")
+                suggest_list.append("压力过高：合理规划任务，劳逸结合")
+            if slp >=18:
+                st.warning("🟡 睡眠质量较差：固定作息，睡前不使用电子设备")
+            if soc >=16:
+                st.warning("🟡 社交回避轻微：从小型集体活动逐步适应社交")
+            if not suggest_list:
+                st.success("🟢 各项心理指标状态良好，保持现有生活节奏")
+            st.divider()
+            st.info("线下咨询渠道：学校大学生心理健康教育中心，工作日8:30-17:00免费预约")
 
-# ===================== 教师端全部模块渲染（复用贝叶斯Copula核心算法） =====================
+# ===================== 【增强完整版】教师端全部模块 =====================
 def render_teacher_module(module):
     df_cache = st.session_state["df_screen_result"]
     tau_cache = st.session_state["tau_cache"]
     trace_cache = st.session_state["trace_cache"]
+    copula_cache = st.session_state["copula_score"]
+    high_thr = st.session_state["global_high_thr"]
+    mid_thr = st.session_state["global_mid_thr"]
+    batch_note = st.session_state["batch_note"]
     if module == "心理普查批量筛查":
-        st.header("📤 批量学生普查数据筛查（贝叶斯-Copula算法）")
-        st.info("上传班级Excel量表数据，自动执行风险分级、变点检测、Copula异常识别")
+        st.header("📤 批量学生普查数据筛查（贝叶斯‑Copula完整算法）")
+        st.info("上传班级Excel量表数据，自动执行风险分级、变点检测、Copula相依异常识别，支持自定义阈值、交互式筛选、双报表导出")
+        with st.expander("⚙️ 本次筛查独立参数配置", expanded=False):
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                local_high = st.slider("本次高危风险阈值", min_value=0.8, max_value=2.5, value=high_thr, step=0.05)
+            with col_p2:
+                local_mid = st.slider("本次中危风险阈值", min_value=0.2, max_value=1.2, value=mid_thr, step=0.05)
+            batch_note_input = st.text_input("本批次普查备注", placeholder="例如：2026秋季大一计算机班普查")
         upload = st.file_uploader("上传普查Excel(xlsx)", type=["xlsx","xls"])
         if upload:
             df_raw = pd.read_excel(upload)
             st.subheader("原始数据预览")
-            st.dataframe(df_raw.head())
-            dims = st.multiselect("选择量表维度列", df_raw.columns.tolist())
-            if len(dims)>=2 and st.button("启动智能风险筛查", type="primary"):
+            st.dataframe(df_raw.head(10), hide_index=True)
+            dims = st.multiselect("选择量表维度列（至少2个维度用于Copula相依建模）", df_raw.columns.tolist())
+            if len(dims)>=2 and st.button("🚀启动智能风险筛查", type="primary"):
                 if not _ALG_AVAILABLE:
-                    st.error("算法包 psycho_screen 加载失败，请检查依赖")
+                    st.error("算法包 psycho_screen 加载失败，请检查文件与依赖环境")
                 else:
                     if df_raw.shape[0]>1000:
-                        st.warning("云端限制，仅处理前1000行数据")
+                        st.warning("云端运行限制，仅处理前1000行样本，完整数据建议本地Anaconda运行")
                         df_raw = df_raw.head(1000)
-                    with st.spinner("贝叶斯模型采样计算中..."):
-                        df_out, trace, tau_mean = psycho_risk_screen(df_raw, dims)
+                    with st.spinner("贝叶斯MCMC采样、Copula相依结构建模计算中，请等待..."):
+                        df_out, trace, tau_mean, copula_abnormal_score = psycho_risk_screen(df_raw, dims, local_high, local_mid)
                     st.session_state["df_screen_result"] = df_out
                     st.session_state["tau_cache"] = tau_mean
                     st.session_state["trace_cache"] = trace
-                    st.success(f"计算完成，总分变点位置：{tau_mean}")
+                    st.session_state["copula_score"] = copula_abnormal_score
+                    st.session_state["batch_note"] = batch_note_input
+                    st.success(f"✅计算完成，检测到总分变点位置：{tau_mean:.1f} | 批次备注：{batch_note_input if batch_note_input else '无'}")
                     risk_cnt = df_out["风险等级"].value_counts()
-                    c1,c2,c3 = st.columns(3)
+                    c1,c2,c3,c4 = st.columns(4)
                     c1.metric("高危人数", risk_cnt.get("高危",0), delta_color="inverse")
                     c2.metric("中危人数", risk_cnt.get("中危",0))
                     c3.metric("低危人数", risk_cnt.get("低危",0))
-                    st.dataframe(df_out, use_container_width=True)
-                    csv = df_out.to_csv(index=False, encoding="utf_8_sig")
-                    st.download_button("导出筛查结果CSV", data=csv, file_name="班级心理筛查.csv")
-    elif module == "风险分析总览":
-        st.header("📈 班级风险分级总览")
+                    c4.metric("本次总样本", len(df_out))
+                    # 第一行双图：总分序列+变点后验分布
+                    fig1,(ax1,ax2)=plt.subplots(1,2,figsize=(17,6))
+                    total_score=df_out["总分"].values
+                    sample_idx=np.arange(len(total_score))
+                    ax1.plot(sample_idx,total_score,color="#5486c0",linewidth=1.4)
+                    ax1.axvline(x=tau_mean,color="red",linestyle="--",linewidth=1.8,label=f"变点:{tau_mean:.1f}")
+                    ax1.set_title("心理普查总分序列与贝叶斯变点",fontsize=13)
+                    ax1.set_xlabel("样本编号")
+                    ax1.set_ylabel("总分")
+                    ax1.legend()
+                    ax1.grid(alpha=0.25)
+                    tau_sample=trace.posterior["tau"].values.flatten()
+                    ax2.hist(tau_sample,bins=20,color="#628ec7",edgecolor="#2b4870",alpha=0.85)
+                    ax2.axvline(x=tau_mean,color="red",linestyle="--",linewidth=1.8)
+                    ax2.set_title("变点位置后验分布",fontsize=13)
+                    ax2.set_xlabel("变点位置")
+                    ax2.grid(alpha=0.25)
+                    st.pyplot(fig1)
+                    # 第二行双图：Copula异常分+风险饼图
+                    fig2,(ax3,ax4)=plt.subplots(1,2,figsize=(17,6))
+                    ax3.hist(copula_abnormal_score,bins=18,color="#f7bc42",edgecolor="#b48620",alpha=0.88)
+                    ax3.set_title("Copula相依异常分分布",fontsize=13)
+                    ax3.set_xlabel("异常分")
+                    ax3.grid(alpha=0.25)
+                    risk_pie = df_out["风险等级"].value_counts()
+                    color_map={"高危":"#ff6b6b","中危":"#ffcc44","低危":"#62bd69"}
+                    pie_color=[color_map[k] for k in risk_pie.index]
+                    ax4.pie(risk_pie.values,labels=risk_pie.index,colors=pie_color,autopct="%.1f%%",textprops={"fontsize":11})
+                    ax4.set_title("样本风险分级占比",fontsize=13)
+                    st.pyplot(fig2)
+                    # 风险统计明细表格
+                    st.markdown("### 📋风险统计明细")
+                    stat_df = pd.DataFrame({
+                        "风险等级":["高危","中危","低危"],
+                        "样本数量":[risk_cnt.get("高危",0),risk_cnt.get("中危",0),risk_cnt.get("低危",0)],
+                        "占比(%)":[
+                            round(risk_cnt.get("高危",0)/len(df_out)*100,2),
+                            round(risk_cnt.get("中危",0)/len(df_out)*100,2),
+                            round(risk_cnt.get("低危",0)/len(df_out)*100,2)
+                        ]
+                    })
+                    st.dataframe(stat_df, hide_index=True, use_container_width=True)
+                    # Copula异常分交互式筛选
+                    st.markdown("### 🔍Copula高异常样本筛选")
+                    filter_score = st.slider("筛选大于该异常分的样本",min_value=float(np.min(copula_abnormal_score)),max_value=float(np.max(copula_abnormal_score)),value=np.percentile(copula_abnormal_score,80))
+                    mask = copula_abnormal_score>filter_score
+                    st.info(f"异常分高于{filter_score:.2f}的样本数量：{np.sum(mask)}")
+                    st.dataframe(df_out.loc[mask,:],use_container_width=True)
+                    # 结果表高危过滤
+                    st.markdown("### 📃全部筛查结果表")
+                    show_high_only = st.checkbox("仅展示高危预警学生")
+                    display_df = df_out[df_out["风险等级"]=="高危"] if show_high_only else df_out
+                    st.dataframe(display_df, use_container_width=True)
+                    # 双文件导出
+                    csv_full = df_out.to_csv(index=False, encoding="utf_8_sig")
+                    csv_stat = stat_df.to_csv(index=False, encoding="utf_8_sig")
+                    col_d1,col_d2 = st.columns(2)
+                    with col_d1:
+                        st.download_button("📥导出完整筛查结果CSV", data=csv_full, file_name=f"班级筛查_{batch_note_input}.csv")
+                    with col_d2:
+                        st.download_button("📥导出风险统计汇总CSV", data=csv_stat, file_name=f"统计报表_{batch_note_input}.csv")
+    elif module == "风险分级统计看板":
+        st.header("📈 班级风险分级综合统计看板")
         if df_cache is None:
-            st.info("请先在批量筛查模块上传数据")
+            st.info("请先在【批量筛查】模块上传并计算普查数据")
         else:
             risk_cnt = df_cache["风险等级"].value_counts()
-            st.dataframe(risk_cnt)
-            st.bar_chart(risk_cnt)
-    elif module == "预警管理":
-        st.header("🚨 高危学生预警管理")
+            c1,c2,c3 = st.columns(3)
+            c1.metric("高危", risk_cnt.get("高危",0))
+            c2.metric("中危", risk_cnt.get("中危",0))
+            c3.metric("低危", risk_cnt.get("低危",0))
+            st.subheader("风险等级柱状分布图")
+            st.bar_chart(risk_cnt, use_container_width=True)
+            st.subheader("统计明细表格")
+            stat_df = pd.DataFrame({
+                "等级":risk_cnt.index,
+                "人数":risk_cnt.values,
+                "占比%": [round(x/len(df_cache)*100,2) for x in risk_cnt.values]
+            })
+            st.dataframe(stat_df, hide_index=True)
+    elif module == "高危预警管理":
+        st.header("🚨 高危学生预警管理台账")
+        if df_cache is None:
+            st.info("请先完成批量筛查生成预警数据")
+        else:
+            high_df = df_cache[df_cache["风险等级"]=="高危"].copy()
+            st.subheader(f"高危预警名单（共{len(high_df)}人）")
+            st.dataframe(high_df, use_container_width=True)
+            st.text_area("批量干预记录填写", placeholder="记录约谈、疏导、回访、转介心理中心情况")
+            csv_high = high_df.to_csv(index=False, encoding="utf_8_sig")
+            st.download_button("导出高危预警台账", data=csv_high, file_name="高危学生预警名单.csv")
+    elif module == "学生个案追踪档案":
+        st.header("👤 学生个案长期追踪档案")
         if df_cache is None:
             st.info("请先完成批量筛查")
         else:
-            high_risk = df_cache[df_cache["风险等级"]=="高危"]
-            st.subheader(f"高危学生名单（共{len(high_risk)}人）")
-            st.dataframe(high_risk, use_container_width=True)
-            st.caption("可线下约谈，标记干预记录")
-    elif module == "个案追踪":
-        st.header("👤 学生个案追踪档案")
-        if df_cache is None:
-            st.info("请先完成批量筛查")
-        else:
-            id_list = df_cache["编号"].unique()
-            sel_id = st.selectbox("选择学生编号查看个案", id_list)
-            one_stu = df_cache[df_cache["编号"]==sel_id]
-            st.dataframe(one_stu, hide_index=True)
-            st.text_area("干预记录填写", placeholder="记录约谈、疏导、回访情况")
-    elif module == "班级趋势分析":
-        st.header("📉 班级心理数据趋势分析")
+            id_list = sorted(df_cache["编号"].unique())
+            sel_id = st.selectbox("选择学生编号查看完整个案", id_list)
+            stu_data = df_cache[df_cache["编号"]==sel_id]
+            st.dataframe(stu_data, hide_index=True)
+            st.text_area("个案追踪记录", placeholder="历次沟通、干预、心理变化记录存档")
+    elif module == "班级趋势分析图表":
+        st.header("📉 班级心理总分时序趋势分析")
         if df_cache is None:
             st.info("请先完成批量筛查")
         else:
             fig, ax = plt.subplots(figsize=(12,5))
             ax.plot(df_cache["编号"], df_cache["总分"], alpha=0.7, color="#4263eb")
-            ax.axvline(x=tau_cache, color="red", linestyle="--", label=f"风险变点：{tau_cache}")
+            ax.axvline(x=tau_cache, color="red", linestyle="--", label=f"风险变点位置：{tau_cache}")
+            ax.set_title("全班学生总分序列与贝叶斯风险变点")
+            ax.set_xlabel("学生编号")
+            ax.set_ylabel("心理总分")
             ax.legend()
-            ax.set_title("班级学生总分序列与贝叶斯风险变点")
+            ax.grid(alpha=0.2)
             st.pyplot(fig)
 
-# ===================== 管理端全部模块渲染 =====================
+# ===================== 【增强完整版】管理端全部模块 =====================
 def render_admin_module(module):
     df_cache = st.session_state["df_screen_result"]
-    if module == "全校数据决策":
-        st.header("🏫 全校心理健康数据总览")
-        st.info("汇总各班级筛查数据，支撑校心理中心决策")
+    global_high = st.session_state["global_high_thr"]
+    global_mid = st.session_state["global_mid_thr"]
+    if module == "全校数据决策总看板":
+        st.header("🏫 全校心理健康数据决策总看板")
         if df_cache is None:
-            st.info("暂无筛查数据，请教师端上传班级数据")
+            st.info("暂无普查汇总数据，请教师端上传班级筛查数据")
         else:
             total = len(df_cache)
             high = len(df_cache[df_cache["风险等级"]=="高危"])
             mid = len(df_cache[df_cache["风险等级"]=="中危"])
             low = len(df_cache[df_cache["风险等级"]=="低危"])
             c1,c2,c3,c4 = st.columns(4)
-            c1.metric("全校统计样本", total)
-            c2.metric("高危人数", high)
+            c1.metric("全校总样本", total)
+            c2.metric("高危人数", high, delta_color="inverse")
             c3.metric("中危人数", mid)
             c4.metric("低危人数", low)
-    elif module == "全校趋势分析":
-        st.header("📊 全校长期心理趋势分析")
-        st.info("多批次普查数据对比，观察整体心理变化趋势")
-        st.warning("多批次时序对比功能开发中，当前展示单批次分布")
-        if df_cache is not None:
+            st.subheader("全校风险分布饼图")
             st.pie_chart(df_cache["风险等级"].value_counts())
-    elif module == "学校综合报告":
-        st.header("📑 全校心理健康综合报告导出")
+            st.subheader("全校风险汇总统计表")
+            stat_df = pd.DataFrame({
+                "风险等级":["高危","中危","低危"],
+                "人数":[high,mid,low],
+                "全校占比(%)":[round(high/total*100,2),round(mid/total*100,2),round(low/total*100,2)]
+            })
+            st.dataframe(stat_df, hide_index=True, use_container_width=True)
+    elif module == "全校多批次趋势对比":
+        st.header("📊 全校多批次普查长期趋势对比")
+        st.warning("多批次时序数据库功能开发中，当前展示单批次全校分布")
+        if df_cache is not None:
+            fig, ax = plt.subplots(figsize=(10,5))
+            risk_cnt = df_cache["风险等级"].value_counts()
+            ax.bar(risk_cnt.index, risk_cnt.values, color=["#ff6b6b","#ffcc44","#62bd69"])
+            ax.set_title("全校当前批次风险人数分布")
+            st.pyplot(fig)
+    elif module == "学校综合报告生成":
+        st.header("📑 全校心理健康综合报告生成与导出")
         if df_cache is None:
-            st.info("无筛查数据无法生成报告")
+            st.info("无筛查汇总数据无法生成报告")
         else:
-            st.markdown("### 报告摘要")
-            st.write(f"普查样本总量：{len(df_cache)}")
-            st.write(f"高危占比：{round(len(df_cache[df_cache['风险等级']=='高危'])/len(df_cache)*100,2)}%")
-            st.download_button("导出原始数据报表", data=df_cache.to_csv(index=False, encoding="utf_8_sig"), file_name="全校心理汇总.csv")
-            st.caption("PDF图文报告功能迭代中")
-    elif module == "用户账号管理":
-        st.header("👥 平台账号权限管理")
-        st.markdown("- 学生账号：仅自评、查看个人画像")
-        st.markdown("- 教师账号：班级筛查、个案预警")
-        st.markdown("- 管理员账号：全校数据、系统配置")
-        st.text_input("新增账号")
-        st.selectbox("分配角色", ["student","teacher","admin"])
-        st.button("保存账号配置")
-    elif module == "系统设置":
-        st.header("⚙️ 系统基础配置")
-        st.subheader("算法参数配置")
-        st.slider("高危风险分阈值", min_value=1.0, max_value=2.5, value=1.5, step=0.1)
-        st.slider("中危风险分阈值", min_value=0.0, max_value=1.2, value=0.5, step=0.1)
+            st.markdown("## 报告摘要（可直接复制至国创/学校汇报文档）")
+            total = len(df_cache)
+            high = len(df_cache[df_cache["风险等级"]=="高危"])
+            mid = len(df_cache[df_cache["风险等级"]=="中危"])
+            high_rate = round(high/total*100,2)
+            mid_rate = round(mid/total*100,2)
+            st.write(f"""
+本次全校心理普查样本总量：{total}人
+高危风险学生：{high}人，占比 {high_rate}%
+中危风险学生：{mid}人，占比 {mid_rate}%
+低危正常学生：{total-high-mid}人
+平台底层采用贝叶斯在线变点检测+Copula相依结构算法，自动识别多维量表异常样本，精准划分心理风险等级，为学校心理干预、辅导员帮扶提供数据支撑。
+            """)
+            full_csv = df_cache.to_csv(index=False, encoding="utf_8_sig")
+            st.download_button("导出全校完整普查汇总表", data=full_csv, file_name="全校心理普查汇总.csv")
+    elif module == "平台账号权限管理":
+        st.header("👥 平台三角色账号权限批量管理")
+        st.subheader("权限说明")
+        st.markdown("- 学生账号：仅自评问卷、个人画像、历史记录、自我建议，无法查看他人数据")
+        st.markdown("- 教师账号：班级批量筛查、预警、个案、班级趋势，仅可见本班学生")
+        st.markdown("- 管理员账号：全校汇总、系统配置、账号管理、全局算法参数")
         st.divider()
-        st.subheader("通知配置")
-        st.checkbox("高危学生自动推送预警消息给辅导员")
+        col1,col2 = st.columns(2)
+        with col1:
+            st.text_input("新增账号用户名")
+            st.text_input("账号密码")
+        with col2:
+            st.selectbox("分配角色", ["student","teacher","admin"])
+            st.button("保存新增账号配置")
+        st.text_area("批量导入账号文本框", placeholder="多行输入：用户名,密码,角色")
+    elif module == "全局算法参数配置":
+        st.header("⚙️ 全局贝叶斯-Copula算法阈值配置（全平台生效）")
+        st.info("修改后学生/教师端所有筛查任务默认使用该套阈值，教师端单次筛查可独立覆盖")
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            new_high = st.slider("全局高危风险阈值", min_value=1.0, max_value=2.5, value=global_high, step=0.05)
+        with col_p2:
+            new_mid = st.slider("全局中危风险阈值", min_value=0.2, max_value=1.2, value=global_mid, step=0.05)
+        if st.button("保存全局算法配置", type="primary"):
+            st.session_state["global_high_thr"] = new_high
+            st.session_state["global_mid_thr"] = new_mid
+            st.success("全局风险阈值已保存，后续所有筛查默认生效")
 
 # ===================== 主业务分发路由 =====================
 def render_main_system():
