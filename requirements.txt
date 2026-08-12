@@ -1,8 +1,9 @@
-pandas
+streamlit>=1.30
 pandas
 numpy
 openpyxl
 scipy
 scikit-learn
-streamlit
 matplotlib
+pymc>=5.10
+arviz>=0.17
