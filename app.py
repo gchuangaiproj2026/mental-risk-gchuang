@@ -2,6 +2,7 @@
 """
 国创项目：多角色高校心理健康动态监测与智能预警平台【全功能增强版】
 布局：左侧边栏导航 + 右侧内容区
+标题优化：确保在任何屏幕下完整可见
 启动：streamlit run app.py
 """
 import streamlit as st
@@ -57,7 +58,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ===================== 全局自定义CSS（美化，适配侧边栏） =====================
+# ===================== 全局自定义CSS =====================
 st.markdown("""
 <style>
 .block-container {
@@ -66,17 +67,16 @@ st.markdown("""
     padding-right: 2rem;
 }
 .hero-title {
-    background: linear-gradient(90deg, #364fc7, #7950f2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
     text-align: center;
-    font-size: 38px;
-    font-weight: bold;
+    font-size: 34px;           /* 缩小字号，适应窄屏 */
+    font-weight: 900;
+    color: #364fc7;
+    text-shadow: 0 2px 12px rgba(54,79,199,0.2);
     margin-bottom: 0.2rem;
-    display: inline-block;
-    width: 100%;
+    word-wrap: break-word;     /* 强制长词换行 */
+    max-width: 100%;
+    padding: 0 15px;           /* 左右留白，防止贴边 */
+    line-height: 1.4;
 }
 .hero-sub {
     text-align: center;
@@ -180,7 +180,7 @@ def init_session():
         }
 init_session()
 
-# ===================== 侧边栏导航（恢复经典布局） =====================
+# ===================== 侧边栏导航 =====================
 def render_sidebar():
     role = st.session_state["role"]
     username = st.session_state["username"]
@@ -211,9 +211,14 @@ def render_sidebar():
             st.session_state["username"] = ""
             st.rerun()
 
-# ===================== 门户首页（三角色选择 + 快捷功能） =====================
+# ===================== 门户首页 =====================
 def render_home_page():
-    st.markdown('<div class="hero-title">高校心理健康智能监测与预警平台</div>', unsafe_allow_html=True)
+    # 标题使用 <br> 强制换行，保证完整显示
+    st.markdown("""
+        <div class="hero-title">
+            高校心理健康智能<br>监测与预警平台
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown('<div class="hero-sub">底层算法：贝叶斯在线变点检测 + Copula相依结构 | 多角色协同心理健康管理系统</div>', unsafe_allow_html=True)
     st.divider()
     
@@ -312,7 +317,11 @@ def render_home_page():
 def render_role_login():
     role_map = {"student": "学生端", "teacher": "教师端", "admin": "管理端"}
     role_cn = role_map[st.session_state["role"]]
-    st.markdown(f'<div class="hero-title">{role_cn}登录</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="hero-title">
+            {role_cn}登录
+        </div>
+    """, unsafe_allow_html=True)
     col1, col_mid, col2 = st.columns([1,2,1])
     with col_mid:
         with st.container():
@@ -354,7 +363,7 @@ def render_main_system():
             render_admin_module(curr_mod)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# ===================== 学生端模块（完整） =====================
+# ===================== 学生端模块 =====================
 def render_student_module(module):
     history = st.session_state["student_self_history"]
     if module == "心理普查（自评问卷）":
@@ -611,7 +620,7 @@ def render_teacher_module(module):
             ax.grid(alpha=0.2)
             st.pyplot(fig)
 
-# ===================== 管理端模块（含趋势图） =====================
+# ===================== 管理端模块 =====================
 def render_admin_module(module):
     df_cache = st.session_state["df_screen_result"]
     global_high = st.session_state["global_high_thr"]
