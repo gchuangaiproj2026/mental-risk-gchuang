@@ -2,7 +2,7 @@
 """
 国创项目：多角色高校心理健康动态监测与智能预警平台【全功能增强版】
 布局：左侧边栏导航 + 右侧内容区
-标题优化：确保在任何屏幕下完整可见
+标题使用内联样式，确保完整可见；首页标题下移；登录界面垂直居中
 启动：streamlit run app.py
 """
 import streamlit as st
@@ -58,25 +58,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ===================== 全局自定义CSS =====================
+# ===================== 全局自定义CSS（不含 .hero-title，避免冲突） =====================
 st.markdown("""
 <style>
 .block-container {
     padding-top: 1rem;
     padding-left: 2rem;
     padding-right: 2rem;
-}
-.hero-title {
-    text-align: center;
-    font-size: 34px;           /* 缩小字号，适应窄屏 */
-    font-weight: 900;
-    color: #364fc7;
-    text-shadow: 0 2px 12px rgba(54,79,199,0.2);
-    margin-bottom: 0.2rem;
-    word-wrap: break-word;     /* 强制长词换行 */
-    max-width: 100%;
-    padding: 0 15px;           /* 左右留白，防止贴边 */
-    line-height: 1.4;
 }
 .hero-sub {
     text-align: center;
@@ -213,10 +201,25 @@ def render_sidebar():
 
 # ===================== 门户首页 =====================
 def render_home_page():
-    # 标题使用 <br> 强制换行，保证完整显示
+    # 顶部增加2行空白，让标题整体下移
+    st.markdown("<br>" * 2, unsafe_allow_html=True)
+    # 标题采用内联样式，确保完整显示且可换行
     st.markdown("""
-        <div class="hero-title">
-            高校心理健康智能<br>监测与预警平台
+        <div style="
+            text-align: center;
+            font-size: 36px;
+            font-weight: 900;
+            color: #364fc7;
+            text-shadow: 0 2px 12px rgba(54,79,199,0.2);
+            margin-bottom: 0.2rem;
+            padding: 0 15px;
+            line-height: 1.4;
+            width: 100%;
+            overflow: visible;
+            white-space: normal;
+            word-wrap: break-word;
+        ">
+            基于贝叶斯在线变点检测与Copula相依结构的高校心理健康动态监测与智能预警平台
         </div>
     """, unsafe_allow_html=True)
     st.markdown('<div class="hero-sub">底层算法：贝叶斯在线变点检测 + Copula相依结构 | 多角色协同心理健康管理系统</div>', unsafe_allow_html=True)
@@ -313,12 +316,27 @@ def render_home_page():
                 st.session_state["role"] = "admin"
                 st.rerun()
 
-# ===================== 登录页 =====================
+# ===================== 登录页（垂直居中） =====================
 def render_role_login():
+    # 增加顶部空白，让登录框整体居中
+    st.markdown("<br>" * 4, unsafe_allow_html=True)
     role_map = {"student": "学生端", "teacher": "教师端", "admin": "管理端"}
     role_cn = role_map[st.session_state["role"]]
     st.markdown(f"""
-        <div class="hero-title">
+        <div style="
+            text-align: center;
+            font-size: 36px;
+            font-weight: 900;
+            color: #364fc7;
+            text-shadow: 0 2px 12px rgba(54,79,199,0.2);
+            margin-bottom: 0.2rem;
+            padding: 0 15px;
+            line-height: 1.4;
+            width: 100%;
+            overflow: visible;
+            white-space: normal;
+            word-wrap: break-word;
+        ">
             {role_cn}登录
         </div>
     """, unsafe_allow_html=True)
