@@ -1,9 +1,7 @@
 # -*- coding:utf-8 -*-
 """
 国创项目：多角色高校心理健康动态监测与智能预警平台【全功能增强版】
-三角色：学生端 / 教师端 / 管理端
-核心算法：贝叶斯在线变点检测 + Copula相依结构
-新增：全端图表可视化、交互式筛选、多文件导出、分层统计、历史存档、全局参数配置
+视觉升级版：顶部导航 + 首页快捷卡片 + 统一卡片样式 + 管理端趋势图
 启动：streamlit run app.py
 """
 import streamlit as st
@@ -13,6 +11,7 @@ import numpy as np
 import os
 from datetime import datetime
 import io
+import random
 
 # 加载核心筛查算法
 try:
@@ -55,55 +54,143 @@ _setup_cjk_font()
 st.set_page_config(
     page_title="高校心理健康智能监测平台",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # 关闭默认侧边栏，用顶部导航替代
 )
 
-# ===================== 全局自定义CSS 蓝紫科技风格 =====================
+# ===================== 全局自定义CSS 现代化蓝紫风格 =====================
 st.markdown("""
 <style>
-.block-container {
-    padding-top: 2rem;
-    padding-left: 3rem;
-    padding-right: 3rem;
+/* 全局字体与背景 */
+body {
+    background-color: #f8faff;
 }
-.main-title {
+.block-container {
+    padding-top: 0.5rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+/* 顶部导航栏 */
+.top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, #364fc7, #7950f2);
+    padding: 0.6rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(54, 79, 199, 0.3);
+}
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+.nav-menu {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.nav-menu .nav-btn {
+    background: rgba(255,255,255,0.15);
+    color: #e0e7ff;
+    border: none;
+    border-radius: 30px;
+    padding: 0.4rem 1.2rem;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.nav-menu .nav-btn:hover {
+    background: rgba(255,255,255,0.3);
+    color: white;
+}
+.nav-menu .nav-btn.active {
+    background: white;
+    color: #364fc7;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.nav-user {
+    color: white;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.nav-user .logout-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    border-radius: 20px;
+    padding: 0.2rem 1rem;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.nav-user .logout-btn:hover {
+    background: rgba(255,255,255,0.4);
+}
+/* 首页英雄区 */
+.hero-title {
     background: linear-gradient(90deg, #364fc7, #7950f2);
     -webkit-background-clip: text;
     color: transparent;
-    text-align:center;
-    font-size:36px;
-    font-weight:bold;
-    margin-bottom:10px;
+    text-align: center;
+    font-size: 40px;
+    font-weight: bold;
+    margin-bottom: 0.2rem;
 }
-.sub-desc {
-    text-align:center;
-    color:#666;
-    font-size:16px;
-    margin-bottom:3rem;
+.hero-sub {
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+    margin-bottom: 2rem;
 }
-.role-card {
-    padding:2rem;
-    border-radius:12px;
-    border:1px solid #e0e7ff;
-    background:#f8faff;
-    text-align:center;
-    height:100%;
+/* 角色卡片与功能卡片 */
+.role-card, .feature-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem 1rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border: 1px solid #edf2f7;
+    text-align: center;
+    height: 100%;
+    transition: all 0.3s ease;
 }
-.role-card:hover {
-    box-shadow: 0 4px 12px #c7d2fe;
-    border-color:#7950f2;
+.role-card:hover, .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(54, 79, 199, 0.12);
+    border-color: #7950f2;
 }
-.sidebar-title {
-    font-size:20px;
-    font-weight:bold;
-    color:#364fc7;
+.role-card h2 {
+    margin-top: 0.2rem;
+    font-size: 24px;
 }
-.upload-box{
-    max-width:950px;
-    margin:0 auto 2rem auto;
+.role-card p {
+    color: #555;
+    font-size: 15px;
+    line-height: 1.5;
 }
-.stExpander {
-    border-radius: 8px;
+.feature-card h3 {
+    font-size: 20px;
+    margin-bottom: 0.3rem;
+}
+.feature-card p {
+    color: #666;
+    font-size: 14px;
+}
+/* 模块内容卡片 */
+.module-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem 1.8rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    border: 1px solid #edf2f7;
+    margin-bottom: 1.5rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -137,48 +224,213 @@ def init_session():
         st.session_state["global_high_thr"] = 1.5
     if "global_mid_thr" not in st.session_state:
         st.session_state["global_mid_thr"] = 0.5
+    # 模拟多批次历史数据（用于趋势图）
+    if "multi_batch_history" not in st.session_state:
+        # 生成8个批次的模拟数据
+        st.session_state["multi_batch_history"] = {
+            "批次": [f"2026-0{i}" for i in range(1,9)],
+            "高危": [random.randint(2,12) for _ in range(8)],
+            "中危": [random.randint(5,18) for _ in range(8)],
+            "低危": [random.randint(20,40) for _ in range(8)]
+        }
 init_session()
 
-# ===================== 门户首页（三角色选择入口） =====================
+# ===================== 顶部导航栏（根据角色渲染） =====================
+def render_top_nav():
+    role = st.session_state["role"]
+    username = st.session_state["username"]
+    role_map = {"student":"学生端", "teacher":"教师端", "admin":"管理端"}
+    
+    # 定义各角色模块列表及对应图标
+    modules = {
+        "student": ["心理普查（自评问卷）", "个人状态画像雷达图", "历史自评存档", "个性化心理建议库"],
+        "teacher": ["心理普查批量筛查", "风险分级统计看板", "高危预警管理", "学生个案追踪档案", "班级趋势分析图表"],
+        "admin": ["全校数据决策总看板", "全校多批次趋势对比", "学校综合报告生成", "平台账号权限管理", "全局算法参数配置"]
+    }
+    current_mod = st.session_state["current_module"]
+    
+    # 构建导航HTML
+    nav_html = f"""
+    <div class="top-nav">
+        <div class="nav-brand">🧠 心理健康监测平台</div>
+        <div class="nav-menu">
+    """
+    # 动态生成模块按钮
+    for mod in modules.get(role, []):
+        active_class = "active" if mod == current_mod else ""
+        # 使用按钮形式，但我们需要通过st.button处理点击，所以用HTML模拟，实际用st.button在下方处理
+        # 这里只展示视觉，交互由下面的st.button实现
+        nav_html += f'<span class="nav-btn {active_class}">{mod}</span>'
+    nav_html += f"""
+        </div>
+        <div class="nav-user">
+            <span>👤 {username} ({role_map[role]})</span>
+            <span class="logout-btn" onclick="document.getElementById('logout_btn').click();">退出</span>
+        </div>
+    </div>
+    """
+    st.markdown(nav_html, unsafe_allow_html=True)
+    
+    # 实际交互：使用隐藏的按钮来触发退出，以及用st.button来切换模块（但会rerun）
+    # 我们在下方用st.columns放置真实的按钮，但会破坏布局，所以用st.button的key和回调
+    # 更好的方式：使用st.tabs或st.radio，但为了视觉统一，我们仍然保留顶部样式，但用streamlit组件重写
+    # 由于自定义HTML无法直接调用streamlit回调，我们改用st.tabs或st.radio实现交互
+    # 但实际上，我们可以在下方使用st.tabs并隐藏标签样式，但比较麻烦。
+    # 简化方案：使用st.radio水平显示，并应用CSS使其看起来像按钮。
+    # 我决定使用st.radio，但将标签隐藏，用自定义样式。
+    
+    # 重新实现：使用st.radio横向布局，并通过CSS美化
+    mod_list = modules.get(role, [])
+    if mod_list:
+        # 使用radio，以水平方式显示，并隐藏label
+        selected = st.radio(
+            label="",
+            options=mod_list,
+            index=mod_list.index(current_mod) if current_mod in mod_list else 0,
+            horizontal=True,
+            key="nav_radio",
+            label_visibility="collapsed"
+        )
+        # 如果选择变化，更新session_state并rerun
+        if selected != current_mod:
+            st.session_state["current_module"] = selected
+            st.rerun()
+        # 为了视觉匹配，我们使用CSS将radio样式改成按钮样式
+        st.markdown("""
+        <style>
+        .stRadio > div {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        .stRadio label {
+            background: rgba(54, 79, 199, 0.08);
+            border-radius: 30px;
+            padding: 0.4rem 1.2rem;
+            font-size: 15px;
+            font-weight: 500;
+            color: #364fc7;
+            border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .stRadio label:hover {
+            background: rgba(54, 79, 199, 0.15);
+        }
+        .stRadio label[data-checked="true"] {
+            background: #364fc7;
+            color: white;
+            border-color: #364fc7;
+            box-shadow: 0 2px 8px rgba(54,79,199,0.3);
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    
+    # 退出按钮（使用st.button，但放在顶部的特定位置）
+    col1, col2, col3 = st.columns([6, 1, 1])
+    with col3:
+        if st.button("🚪 退出", key="logout_btn", use_container_width=True):
+            st.session_state["page_root"] = "home"
+            st.session_state["role"] = ""
+            st.session_state["username"] = ""
+            st.rerun()
+
+# ===================== 门户首页（三角色选择 + 快捷功能入口） =====================
 def render_home_page():
-    st.markdown('<div class="main-title">高校心理健康智能监测与预警平台</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-desc">底层算法：贝叶斯在线变点检测 + Copula相依结构 | 多角色协同心理健康管理系统</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-title">高校心理健康智能监测与预警平台</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-sub">底层算法：贝叶斯在线变点检测 + Copula相依结构 | 多角色协同心理健康管理系统</div>', unsafe_allow_html=True)
+    st.divider()
+    
+    # 快捷功能卡片（参考图1风格）
+    st.subheader("🚀 快捷功能入口")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        with st.container():
+            st.markdown("""
+            <div class="feature-card">
+                <h3>📝 心理普查</h3>
+                <p>学生自评问卷 / 批量筛查</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("进入普查", key="quick_survey", use_container_width=True):
+                st.session_state["page_root"] = "role_login"
+                st.session_state["role"] = "student"
+                st.rerun()
+    with col2:
+        with st.container():
+            st.markdown("""
+            <div class="feature-card">
+                <h3>📊 风险分析</h3>
+                <p>智能分级与Copula异常检测</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("查看风险", key="quick_risk", use_container_width=True):
+                st.session_state["page_root"] = "role_login"
+                st.session_state["role"] = "teacher"
+                st.rerun()
+    with col3:
+        with st.container():
+            st.markdown("""
+            <div class="feature-card">
+                <h3>📈 数据决策</h3>
+                <p>全校看板与趋势报告</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("数据决策", key="quick_dashboard", use_container_width=True):
+                st.session_state["page_root"] = "role_login"
+                st.session_state["role"] = "admin"
+                st.rerun()
+    with col4:
+        with st.container():
+            st.markdown("""
+            <div class="feature-card">
+                <h3>🧑‍🏫 个案追踪</h3>
+                <p>学生档案与预警管理</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("追踪档案", key="quick_case", use_container_width=True):
+                st.session_state["page_root"] = "role_login"
+                st.session_state["role"] = "teacher"
+                st.rerun()
+    
     st.divider()
     st.markdown("### 请选择您的登录角色进入对应系统")
     col1, col2, col3 = st.columns(3, gap="large")
     with col1:
-        st.markdown("""
-        <div class="role-card">
-            <h2>👨‍🎓 学生端</h2>
-            <p>心理普查自评、多维度状态雷达画像、历史存档、个性化心理疏导建议、自评数据导出</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("进入学生端系统", use_container_width=True, type="secondary"):
-            st.session_state["page_root"] = "role_login"
-            st.session_state["role"] = "student"
-            st.rerun()
+        with st.container():
+            st.markdown("""
+            <div class="role-card">
+                <h2>👨‍🎓 学生端</h2>
+                <p>心理普查自评、多维度状态雷达画像、历史存档、个性化心理疏导建议、自评数据导出</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("进入学生端系统", use_container_width=True, key="home_student"):
+                st.session_state["page_root"] = "role_login"
+                st.session_state["role"] = "student"
+                st.rerun()
     with col2:
-        st.markdown("""
-        <div class="role-card">
-            <h2>👩‍🏫 教师端</h2>
-            <p>批量贝叶斯-Copula风险筛查、全套算法可视化图表、预警管理、个案追踪、班级趋势、多报表导出</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("进入教师端系统", use_container_width=True, type="primary"):
-            st.session_state["page_root"] = "role_login"
-            st.session_state["role"] = "teacher"
-            st.rerun()
+        with st.container():
+            st.markdown("""
+            <div class="role-card">
+                <h2>👩‍🏫 教师端</h2>
+                <p>批量贝叶斯-Copula风险筛查、全套算法可视化图表、预警管理、个案追踪、班级趋势、多报表导出</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("进入教师端系统", use_container_width=True, key="home_teacher"):
+                st.session_state["page_root"] = "role_login"
+                st.session_state["role"] = "teacher"
+                st.rerun()
     with col3:
-        st.markdown("""
-        <div class="role-card">
-            <h2>🏛️ 管理端</h2>
-            <p>全校数据决策看板、多批次趋势对比、年级分层统计、全校综合报告、账号权限、全局算法参数配置</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("进入管理端系统", use_container_width=True, type="secondary"):
-            st.session_state["page_root"] = "role_login"
-            st.session_state["role"] = "admin"
-            st.rerun()
+        with st.container():
+            st.markdown("""
+            <div class="role-card">
+                <h2>🏛️ 管理端</h2>
+                <p>全校数据决策看板、多批次趋势对比、年级分层统计、全校综合报告、账号权限、全局算法参数配置</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("进入管理端系统", use_container_width=True, key="home_admin"):
+                st.session_state["page_root"] = "role_login"
+                st.session_state["role"] = "admin"
+                st.rerun()
 
 # ===================== 分角色登录页 =====================
 def render_role_login():
@@ -188,54 +440,52 @@ def render_role_login():
         "admin": "管理端"
     }
     role_cn = role_map[st.session_state["role"]]
-    st.markdown(f'<div class="main-title">{role_cn}登录</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="hero-title">{role_cn}登录</div>', unsafe_allow_html=True)
     col1, col_mid, col2 = st.columns([1,2,1])
     with col_mid:
-        user = st.text_input("账号", placeholder="输入账号")
-        pwd = st.text_input("密码", type="password", placeholder="输入密码")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            if st.button("返回首页"):
-                st.session_state["page_root"] = "home"
-                st.rerun()
-        with col_b:
-            if st.button("登录系统", type="primary"):
-                if user.strip() and pwd.strip():
-                    st.session_state["username"] = user
-                    st.session_state["page_root"] = "main"
+        with st.container():
+            user = st.text_input("账号", placeholder="输入账号")
+            pwd = st.text_input("密码", type="password", placeholder="输入密码")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("返回首页", use_container_width=True):
+                    st.session_state["page_root"] = "home"
                     st.rerun()
-                else:
-                    st.error("账号密码不能为空")
-        st.caption("测试权限：任意账号密码均可登录对应角色")
+            with col_b:
+                if st.button("登录系统", type="primary", use_container_width=True):
+                    if user.strip() and pwd.strip():
+                        st.session_state["username"] = user
+                        # 设置默认模块为该角色的第一个模块
+                        mod_map = {
+                            "student": "心理普查（自评问卷）",
+                            "teacher": "心理普查批量筛查",
+                            "admin": "全校数据决策总看板"
+                        }
+                        st.session_state["current_module"] = mod_map[st.session_state["role"]]
+                        st.session_state["page_root"] = "main"
+                        st.rerun()
+                    else:
+                        st.error("账号密码不能为空")
+            st.caption("测试权限：任意账号密码均可登录对应角色")
 
-# ===================== 侧边栏导航（按角色区分模块） =====================
-def render_sidebar():
+# ===================== 主系统（带顶部导航） =====================
+def render_main_system():
+    render_top_nav()  # 替换原有的侧边栏
     role = st.session_state["role"]
-    username = st.session_state["username"]
-    with st.sidebar:
-        st.markdown('<div class="sidebar-title">🧠 心理健康监测平台</div>', unsafe_allow_html=True)
-        st.markdown("---")
-        st.markdown(f"用户：{username}")
-        role_map = {"student":"学生","teacher":"教师","admin":"管理员"}
-        st.markdown(f"当前角色：{role_map[role]}")
-        st.markdown("---")
-        st.markdown("#### 功能模块导航")
-        module_list = []
+    curr_mod = st.session_state["current_module"]
+    
+    # 每个模块内容用卡片包裹
+    with st.container():
+        st.markdown('<div class="module-card">', unsafe_allow_html=True)
         if role == "student":
-            module_list = ["心理普查（自评问卷）", "个人状态画像雷达图", "历史自评存档", "个性化心理建议库"]
+            render_student_module(curr_mod)
         elif role == "teacher":
-            module_list = ["心理普查批量筛查", "风险分级统计看板", "高危预警管理", "学生个案追踪档案", "班级趋势分析图表"]
+            render_teacher_module(curr_mod)
         elif role == "admin":
-            module_list = ["全校数据决策总看板", "全校多批次趋势对比", "学校综合报告生成", "平台账号权限管理", "全局算法参数配置"]
-        st.session_state["current_module"] = st.selectbox("选择模块", module_list, label_visibility="collapsed")
-        st.markdown("---")
-        if st.button("退出登录", use_container_width=True):
-            st.session_state["page_root"] = "home"
-            st.session_state["role"] = ""
-            st.session_state["username"] = ""
-            st.rerun()
+            render_admin_module(curr_mod)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-# ===================== 【增强完整版】学生端全部模块 =====================
+# ===================== 【原有模块函数】学生端 =====================
 def render_student_module(module):
     history = st.session_state["student_self_history"]
     if module == "心理普查（自评问卷）":
@@ -281,9 +531,7 @@ def render_student_module(module):
             ax.set_xticklabels(dims)
             ax.set_title("个人心理五维度雷达画像", fontsize=14)
             st.pyplot(fig)
-            # 总分指标
             st.metric("当前心理总分", value=int(latest["总分"].iloc[0]))
-            # 导出自评数据
             all_history = pd.concat(history, ignore_index=True)
             csv = all_history.to_csv(index=False, encoding="utf_8_sig")
             st.download_button("📥 导出全部自评历史CSV", data=csv, file_name="学生自评历史记录.csv")
@@ -294,7 +542,6 @@ def render_student_module(module):
         else:
             all_df = pd.concat(history, ignore_index=True)
             st.dataframe(all_df, use_container_width=True)
-            # 时序趋势图
             fig, ax = plt.subplots(figsize=(12,5))
             ax.plot(all_df["自评时间"], all_df["总分"], marker="o", color="#7950f2")
             ax.set_title("历次自评总分变化趋势")
@@ -334,7 +581,7 @@ def render_student_module(module):
             st.divider()
             st.info("线下咨询渠道：学校大学生心理健康教育中心，工作日8:30-17:00免费预约")
 
-# ===================== 【增强完整版】教师端全部模块 =====================
+# ===================== 【原有模块函数】教师端 =====================
 def render_teacher_module(module):
     df_cache = st.session_state["df_screen_result"]
     tau_cache = st.session_state["tau_cache"]
@@ -380,7 +627,7 @@ def render_teacher_module(module):
                     c2.metric("中危人数", risk_cnt.get("中危",0))
                     c3.metric("低危人数", risk_cnt.get("低危",0))
                     c4.metric("本次总样本", len(df_out))
-                    # 第一行双图：总分序列+变点后验分布
+                    # 第一行双图
                     fig1,(ax1,ax2)=plt.subplots(1,2,figsize=(17,6))
                     total_score=df_out["总分"].values
                     sample_idx=np.arange(len(total_score))
@@ -398,7 +645,7 @@ def render_teacher_module(module):
                     ax2.set_xlabel("变点位置")
                     ax2.grid(alpha=0.25)
                     st.pyplot(fig1)
-                    # 第二行双图：Copula异常分+风险饼图
+                    # 第二行双图
                     fig2,(ax3,ax4)=plt.subplots(1,2,figsize=(17,6))
                     ax3.hist(copula_abnormal_score,bins=18,color="#f7bc42",edgecolor="#b48620",alpha=0.88)
                     ax3.set_title("Copula相依异常分分布",fontsize=13)
@@ -410,7 +657,7 @@ def render_teacher_module(module):
                     ax4.pie(risk_pie.values,labels=risk_pie.index,colors=pie_color,autopct="%.1f%%",textprops={"fontsize":11})
                     ax4.set_title("样本风险分级占比",fontsize=13)
                     st.pyplot(fig2)
-                    # 风险统计明细表格
+                    # 统计明细
                     st.markdown("### 📋风险统计明细")
                     stat_df = pd.DataFrame({
                         "风险等级":["高危","中危","低危"],
@@ -422,18 +669,18 @@ def render_teacher_module(module):
                         ]
                     })
                     st.dataframe(stat_df, hide_index=True, use_container_width=True)
-                    # Copula异常分交互式筛选
+                    # Copula筛选
                     st.markdown("### 🔍Copula高异常样本筛选")
                     filter_score = st.slider("筛选大于该异常分的样本",min_value=float(np.min(copula_abnormal_score)),max_value=float(np.max(copula_abnormal_score)),value=np.percentile(copula_abnormal_score,80))
                     mask = copula_abnormal_score>filter_score
                     st.info(f"异常分高于{filter_score:.2f}的样本数量：{np.sum(mask)}")
                     st.dataframe(df_out.loc[mask,:],use_container_width=True)
-                    # 结果表高危过滤
+                    # 全部结果
                     st.markdown("### 📃全部筛查结果表")
                     show_high_only = st.checkbox("仅展示高危预警学生")
                     display_df = df_out[df_out["风险等级"]=="高危"] if show_high_only else df_out
                     st.dataframe(display_df, use_container_width=True)
-                    # 双文件导出
+                    # 导出
                     csv_full = df_out.to_csv(index=False, encoding="utf_8_sig")
                     csv_stat = stat_df.to_csv(index=False, encoding="utf_8_sig")
                     col_d1,col_d2 = st.columns(2)
@@ -496,7 +743,7 @@ def render_teacher_module(module):
             ax.grid(alpha=0.2)
             st.pyplot(fig)
 
-# ===================== 【增强完整版】管理端全部模块 =====================
+# ===================== 【增强管理端】增加趋势图 =====================
 def render_admin_module(module):
     df_cache = st.session_state["df_screen_result"]
     global_high = st.session_state["global_high_thr"]
@@ -515,24 +762,65 @@ def render_admin_module(module):
             c2.metric("高危人数", high, delta_color="inverse")
             c3.metric("中危人数", mid)
             c4.metric("低危人数", low)
-            st.subheader("全校风险分布饼图")
-            st.pie_chart(df_cache["风险等级"].value_counts())
+            
+            # 两个图表并排：饼图 + 趋势图（模拟多批次）
+            col_chart1, col_chart2 = st.columns(2)
+            with col_chart1:
+                st.subheader("全校风险分布")
+                fig, ax = plt.subplots(figsize=(7,6))
+                risk_counts = df_cache["风险等级"].value_counts()
+                colors = {"高危": "#ff6b6b", "中危": "#ffcc44", "低危": "#62bd69"}
+                ax.pie(
+                    risk_counts.values,
+                    labels=risk_counts.index,
+                    colors=[colors[k] for k in risk_counts.index],
+                    autopct="%.1f%%",
+                    textprops={"fontsize": 12}
+                )
+                ax.set_title("当前批次风险分布", fontsize=14)
+                st.pyplot(fig)
+            with col_chart2:
+                st.subheader("全校多批次趋势（模拟）")
+                # 使用session中存储的模拟数据
+                hist = st.session_state["multi_batch_history"]
+                df_hist = pd.DataFrame(hist)
+                fig2, ax2 = plt.subplots(figsize=(7,6))
+                ax2.plot(df_hist["批次"], df_hist["高危"], marker='o', label="高危", color="#ff6b6b")
+                ax2.plot(df_hist["批次"], df_hist["中危"], marker='s', label="中危", color="#ffcc44")
+                ax2.plot(df_hist["批次"], df_hist["低危"], marker='^', label="低危", color="#62bd69")
+                ax2.set_title("全校风险人数变化趋势（模拟）")
+                ax2.set_xlabel("批次")
+                ax2.set_ylabel("人数")
+                ax2.legend()
+                ax2.grid(alpha=0.2)
+                st.pyplot(fig2)
+            
             st.subheader("全校风险汇总统计表")
             stat_df = pd.DataFrame({
                 "风险等级":["高危","中危","低危"],
                 "人数":[high,mid,low],
-                "全校占比(%)":[round(high/total*100,2),round(mid/total*100,2),round(low/total*100,2)]
+                "全校占比(%)":[round(high/total*100,2), round(mid/total*100,2), round(low/total*100,2)]
             })
             st.dataframe(stat_df, hide_index=True, use_container_width=True)
     elif module == "全校多批次趋势对比":
         st.header("📊 全校多批次普查长期趋势对比")
-        st.warning("多批次时序数据库功能开发中，当前展示单批次全校分布")
-        if df_cache is not None:
-            fig, ax = plt.subplots(figsize=(10,5))
-            risk_cnt = df_cache["风险等级"].value_counts()
-            ax.bar(risk_cnt.index, risk_cnt.values, color=["#ff6b6b","#ffcc44","#62bd69"])
-            ax.set_title("全校当前批次风险人数分布")
-            st.pyplot(fig)
+        st.info("基于模拟数据展示风险趋势，实际部署可接入数据库")
+        hist = st.session_state["multi_batch_history"]
+        df_hist = pd.DataFrame(hist)
+        st.dataframe(df_hist, use_container_width=True)
+        fig, ax = plt.subplots(figsize=(10,5))
+        ax.plot(df_hist["批次"], df_hist["高危"], marker='o', label="高危", color="#ff6b6b", linewidth=2)
+        ax.plot(df_hist["批次"], df_hist["中危"], marker='s', label="中危", color="#ffcc44", linewidth=2)
+        ax.plot(df_hist["批次"], df_hist["低危"], marker='^', label="低危", color="#62bd69", linewidth=2)
+        ax.set_title("全校多批次风险人数趋势")
+        ax.set_xlabel("批次")
+        ax.set_ylabel("人数")
+        ax.legend()
+        ax.grid(alpha=0.3)
+        st.pyplot(fig)
+        # 导出趋势数据
+        csv_trend = df_hist.to_csv(index=False, encoding="utf_8_sig")
+        st.download_button("📥导出趋势数据CSV", data=csv_trend, file_name="全校多批次趋势.csv")
     elif module == "学校综合报告生成":
         st.header("📑 全校心理健康综合报告生成与导出")
         if df_cache is None:
@@ -580,18 +868,6 @@ def render_admin_module(module):
             st.session_state["global_high_thr"] = new_high
             st.session_state["global_mid_thr"] = new_mid
             st.success("全局风险阈值已保存，后续所有筛查默认生效")
-
-# ===================== 主业务分发路由 =====================
-def render_main_system():
-    render_sidebar()
-    role = st.session_state["role"]
-    curr_mod = st.session_state["current_module"]
-    if role == "student":
-        render_student_module(curr_mod)
-    elif role == "teacher":
-        render_teacher_module(curr_mod)
-    elif role == "admin":
-        render_admin_module(curr_mod)
 
 # ===================== 页面总路由控制 =====================
 root_page = st.session_state["page_root"]

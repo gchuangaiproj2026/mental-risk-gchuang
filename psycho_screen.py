@@ -3,6 +3,7 @@
 基于贝叶斯在线变点检测与Copula相依结构的高校心理普查数据筛查算法包
 国创项目 psycho_screen.py
 适配多角色平台增强版：支持自定义风险阈值，返回Copula异常分数组用于前端绘图筛选
+优化版：降低采样迭代，适应Streamlit Cloud 1GB内存环境
 """
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ import pymc as pm
 import arviz as az
 from scipy import stats
 from scipy.stats import multivariate_normal, norm
+import gc
 
 def psycho_risk_screen(df_raw, dims_list, high_threshold=1.5, mid_threshold=0.5, seed=42):
     """
@@ -41,8 +43,8 @@ def psycho_risk_screen(df_raw, dims_list, high_threshold=1.5, mid_threshold=0.5,
         mu = pm.math.switch(tau >= np.arange(T), mu1, mu2)
         # 观测似然
         obs = pm.Normal("obs", mu=mu, sigma=sigma, observed=total_scores)
-        # MCMC采样
-        trace = pm.sample(600, tune=300, cores=1, return_inferencedata=True)
+        # MCMC采样 - 降低迭代次数，减少链数，适应云环境
+        trace = pm.sample(300, tune=150, chains=2, cores=1, return_inferencedata=True)
     # 计算变点后验均值
     tau_samples = trace.posterior["tau"].values.flatten()
     tau_mean = int(tau_samples.mean())
@@ -91,6 +93,10 @@ def psycho_risk_screen(df_raw, dims_list, high_threshold=1.5, mid_threshold=0.5,
     # 生成样本编号
     df.reset_index(drop=True, inplace=True)
     df["编号"] = np.arange(1, n + 1)
+
+    # 建议：如内存紧张，可在此处删除部分中间变量
+    # del data_mat, u_data, z_vals, cov_mat, mv_norm
+    # gc.collect()
 
     # 多返回值，供前端绘图、筛选使用
     return df, trace, tau_mean, copula_abnormal_score
