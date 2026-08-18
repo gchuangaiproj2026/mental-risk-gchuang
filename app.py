@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
 """
 国创项目：多角色高校心理健康动态监测与智能预警平台
-生产版 - 集成权限、移动端适配、消息推送、Docker支持
+【最终版】顶栏下移 + 圆图一排布局 + 修复DOM报错
 启动：streamlit run app.py
 """
 import streamlit as st
+from streamlit_option_menu import option_menu
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -71,85 +72,50 @@ def _setup_cjk_font():
     plt.rcParams['axes.unicode_minus'] = False
 _setup_cjk_font()
 
-# ===== 页面配置（移动端优化） =====
+# ===== 页面配置 =====
 st.set_page_config(
     page_title="高校心理健康智能监测平台",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# ===== 全局CSS + 移动端响应式 =====
+# ===== 全局CSS =====
 st.markdown("""
 <style>
-.block-container { padding-top: 1rem; padding-left: 2rem; padding-right: 2rem; }
-.hero-sub { text-align: center; color: #666; font-size: 17px; margin-bottom: 2rem; }
-.role-card, .feature-card {
-    background: white; border-radius: 16px; padding: 1.5rem 1rem;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #edf2f7;
-    text-align: center; height: 100%; transition: all 0.3s ease;
+.block-container {
+    padding-top: 1rem !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 1450px;
 }
-.role-card:hover, .feature-card:hover {
-    transform: translateY(-4px); box-shadow: 0 8px 24px rgba(54,79,199,0.12);
-    border-color: #7950f2;
-}
-.role-card h2 { margin-top: 0.2rem; font-size: 24px; }
-.role-card p { color: #555; font-size: 15px; line-height: 1.5; }
-.feature-card h3 { font-size: 20px; margin-bottom: 0.3rem; }
-.feature-card p { color: #666; font-size: 14px; }
-.module-card {
-    background: white; border-radius: 16px; padding: 1.5rem 1.8rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.05); border: 1px solid #edf2f7;
-    margin-bottom: 1.5rem; overflow: auto;
-}
-.css-1d391kg, .css-163i55w { background-color: #f8faff; }
-.sidebar-title { font-size: 22px; font-weight: bold; color: #364fc7; text-align: center; margin-bottom: 0.5rem; }
-.dash-title { font-size:22px; font-weight:bold; color:#0F4C99; margin-bottom:16px; }
-.sub-title { font-size: 17px; font-weight: 700; color: #1e293b; margin: .6rem 0 .8rem; }
-.kpi-card { border-radius: 14px; padding: 1rem 1.2rem; color: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.12); position: relative; overflow: hidden; margin-bottom: 0.6rem; }
-.kpi-up { background: linear-gradient(135deg, #4f6ef7, #3b5bdb); }
-.kpi-warn { background: linear-gradient(135deg, #ff922b, #f76707); }
-.kpi-down { background: linear-gradient(135deg, #20c997, #0ca678); }
-.kpi-icon { position: absolute; right: 14px; top: 10px; font-size: 30px; opacity: 0.9; }
-.kpi-label { font-size: 13px; opacity: 0.92; }
-.kpi-value { font-size: 30px; font-weight: 800; line-height: 1.25; margin-top: 2px; }
-.kpi-delta { font-size: 12px; opacity: 0.85; }
-.mini-card { background:#fff; border:1px solid #eef2f7; border-radius:12px; padding:.7rem 1rem; display:flex; align-items:baseline; gap:.6rem; box-shadow:0 2px 8px rgba(0,0,0,.04); }
-.mini-label { font-size:13px; color:#64748b; }
-.mini-value { font-size:22px; font-weight:800; color:#364fc7; }
-.mini-delta { font-size:12px; color:#94a3b8; margin-left:auto; }
-[data-testid="stVerticalBlockBorderWrapper"] { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
-.alert-item { display:flex; align-items:center; padding:.5rem .65rem; border-radius:8px; background:#f8fafc; margin-bottom:.45rem; font-size:13px; border-left:4px solid #ff6b6b; }
-.tag { font-size:11px; padding:2px 9px; border-radius:10px; color:#fff; white-space:nowrap; }
+.dash-title { font-size:26px; font-weight:bold; color:#0F4C99; margin-bottom:20px; }
+.sub-title { font-size: 20px; font-weight: 700; color: #1e293b; margin: .8rem 0 1rem; }
+.alert-item { display:flex; align-items:center; padding:.7rem .8rem; border-radius:10px; background:#f8fafc; margin-bottom:.6rem; font-size:15px; border-left:5px solid #ff6b6b; }
+.tag { font-size:13px; padding:3px 11px; border-radius:12px; color:#fff; white-space:nowrap; }
 .tag-red { background:#ff6b6b; } .tag-yellow { background:#f7bc42; } .tag-green { background:#62bd69; }
-.progress-row { margin-bottom:.85rem; }
-.progress-label { display:flex; justify-content:space-between; font-size:13px; color:#475569; margin-bottom:.25rem; }
-.progress-track { height:10px; border-radius:8px; background:#eef2f7; overflow:hidden; }
-.progress-fill { height:100%; border-radius:8px; transition: width .6s ease; }
-.stat-strip { display:flex; gap:1rem; margin-top:1.2rem; }
-.stat-item { flex:1; min-width:120px; background:#fff; border-radius:12px; padding:.8rem 1rem; text-align:center; border:1px solid #eef2f7; box-shadow:0 2px 8px rgba(0,0,0,.04); }
-.stat-item .num { font-size:24px; font-weight:800; color:#364fc7; }
-.stat-item .txt { font-size:12px; color:#64748b; }
-.res-card { background:#fff; border:1px solid #eef2f7; border-radius:14px; padding:1.1rem 1.2rem; box-shadow:0 2px 8px rgba(0,0,0,.05); height:100%; margin-bottom:.8rem; }
-.res-icon { font-size: 30px; margin-bottom: .4rem; }
-.res-card h5 { margin:.3rem 0 .3rem; font-size:15px; color:#334155; }
-.res-card p { margin:0; font-size:13px; color:#64748b; line-height:1.7; }
-.res-tag { display:inline-block; font-size:11px; padding:2px 10px; border-radius:10px; margin-bottom:.3rem; }
+.progress-row { margin-bottom:1rem; }
+.progress-label { display:flex; justify-content:space-between; font-size:15px; color:#475569; margin-bottom:.35rem; }
+.progress-track { height:12px; border-radius:10px; background:#eef2f7; overflow:hidden; }
+.progress-fill { height:100%; border-radius:10px; transition: width .6s ease; }
+.res-card { background:#fff; border:1px solid #eef2f7; border-radius:16px; padding:1.4rem 1.5rem; box-shadow:0 3px 10px rgba(0,0,0,.05); height:100%; margin-bottom:1rem; }
+.res-icon { font-size: 34px; margin-bottom: .6rem; }
+.res-card h5 { margin:.4rem 0 .4rem; font-size:17px; color:#334155; }
+.res-card p { margin:0; font-size:15px; color:#64748b; line-height:1.75; }
+.res-tag { display:inline-block; font-size:13px; padding:3px 12px; border-radius:12px; margin-bottom:.4rem; }
 .res-tag.blue { background:#e7f0ff; color:#3b5bdb; }
 .res-tag.green { background:#e6fcf5; color:#0ca678; }
 .res-tag.orange { background:#fff4e6; color:#f76707; }
 .res-tag.red { background:#ffe3e3; color:#ff6b6b; }
-
-/* ===== 移动端适配 ===== */
+/* 顶栏：margin-top下移，解决标题被遮挡 */
+.top-bar-wrap{margin-top:28px;margin-bottom:12px;}
+.top-bar{background:linear-gradient(135deg,#0F4C99,#1a6bc4);color:white;padding:14px 24px;border-radius:14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 14px rgba(15,76,153,0.2);}
+.top-logo{font-size:22px;font-weight:bold;display:flex;align-items:center;gap:10px;}
+.top-user-info{display:flex;gap:18px;align-items:center;font-size:15px;}
+.logout-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.28);color:white;padding:7px 18px;border-radius:8px;cursor:pointer;text-decoration:none;}
+.logout-btn:hover{background:rgba(255,255,255,0.32);}
 @media (max-width: 768px) {
-    .block-container { padding-left: 0.5rem; padding-right: 0.5rem; }
-    .stColumns { flex-direction: column; }
-    .stColumn { width: 100% !important; flex: none !important; }
-    .module-card { padding: 0.8rem; }
-    .kpi-card { padding: 0.5rem; }
-    .kpi-value { font-size: 22px; }
-    .dash-title { font-size: 18px; }
-    .sidebar-title { font-size: 18px; }
-    .stPlotlyChart { width: 100% !important; }
+    .block-container { padding-left: 0.6rem; padding-right: 0.6rem; padding-top:1.2rem !important; }
+    .top-bar{flex-direction:column;gap:10px;padding:12px 16px;}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -157,22 +123,22 @@ st.markdown("""
 # ===== 通用卡片辅助 =====
 def _metric_card_html(title, value, delta="", color="#0F4C99", icon=""):
     return f"""
-    <div style="background:{color};border-radius:12px;padding:16px 20px;color:white;box-shadow:0 4px 12px rgba(0,0,0,0.15);height:100%;">
-        <div style="font-size:13px;opacity:0.85;display:flex;justify-content:space-between;">
+    <div style="background:{color};border-radius:14px;padding:20px 24px;color:white;box-shadow:0 6px 16px rgba(0,0,0,0.16);height:100%;">
+        <div style="font-size:15px;opacity:0.88;display:flex;justify-content:space-between;">
             <span>{title}</span>
-            <span>{icon}</span>
+            <span style="font-size:28px;">{icon}</span>
         </div>
-        <div style="font-size:28px;font-weight:bold;margin:4px 0;">{value}</div>
-        <div style="font-size:12px;opacity:0.9;">{delta}</div>
+        <div style="font-size:34px;font-weight:bold;margin:8px 0;">{value}</div>
+        <div style="font-size:14px;opacity:0.92;">{delta}</div>
     </div>
     """
 
 def _suggestion_card_html(title, desc, action, color="#4f6ef7"):
     return f"""
-    <div style="background:{color};border-radius:12px;padding:16px 20px;color:white;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-        <div style="font-weight:bold;font-size:16px;display:flex;align-items:center;gap:8px;">{title}</div>
-        <div style="font-size:14px;opacity:0.95;margin:4px 0;">{desc}</div>
-        <div style="font-size:13px;opacity:0.8;margin-top:4px;">💡 {action}</div>
+    <div style="background:{color};border-radius:14px;padding:20px 24px;color:white;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,0.12);">
+        <div style="font-weight:bold;font-size:18px;display:flex;align-items:center;gap:10px;">{title}</div>
+        <div style="font-size:16px;opacity:0.95;margin:6px 0;">{desc}</div>
+        <div style="font-size:15px;opacity:0.85;margin-top:6px;">💡 {action}</div>
     </div>
     """
 
@@ -208,7 +174,7 @@ def send_wechat_robot(webhook_url, content):
     except Exception as e:
         st.error(f"通知异常: {e}")
 
-# ===== 示例数据生成 =====
+# ===== 示例数据生成（函数内部不调用 st.rerun） =====
 def generate_student_example():
     history = []
     base_date = datetime.now() - timedelta(days=10)
@@ -225,7 +191,6 @@ def generate_student_example():
         data["总分"] = data[["焦虑","抑郁","压力","睡眠障碍","社交回避"]].sum(axis=1)
         history.append(data)
     st.session_state["student_self_history"] = history
-    st.rerun()
 
 def generate_teacher_example():
     np.random.seed(42)
@@ -251,7 +216,6 @@ def generate_teacher_example():
     st.session_state["tau_cache"] = int(n * 0.6)
     st.session_state["copula_score"] = copula_scores
     st.session_state["trace_cache"] = None
-    st.rerun()
 
 def generate_admin_example():
     if "admin_student_df" not in st.session_state:
@@ -293,7 +257,6 @@ def generate_admin_example():
             "状态": [rng.choice(["干预中","干预中","已结案"], p=[0.5,0.3,0.2]) for _ in range(8)],
         })
         st.session_state["admin_intervention_df"] = inter_df
-    st.rerun()
 
 def generate_word_report(batch_name, tau, df, stat_df, fig_pie):
     if not _DOCX_AVAILABLE:
@@ -332,7 +295,7 @@ def generate_word_report(batch_name, tau, df, stat_df, fig_pie):
 
 # ===== Session初始化 =====
 def init_session():
-    init_db()  # 建表并创建默认账户
+    init_db()
     if "page_root" not in st.session_state:
         st.session_state["page_root"] = "home"
     if "role" not in st.session_state:
@@ -366,16 +329,13 @@ def init_session():
             "中危": [random.randint(5,18) for _ in range(8)],
             "低危": [random.randint(20,40) for _ in range(8)]
         }
-
 init_session()
 
-# ===== 加载用户数据（过滤学院） =====
+# ===== 加载用户数据 =====
 def load_user_data(username, role, college):
-    # 学生自评
     hist_df = load_self_assess(username, college=college if role=="student" else None)
     if not hist_df.empty:
         st.session_state["student_self_history"] = [hist_df.iloc[[i]] for i in range(len(hist_df))]
-    # 教师/管理加载筛查
     if role in ["teacher", "admin"]:
         batch_name, tau, df_data, copula = load_latest_screen_batch(college=college if role=="teacher" else None)
         if df_data is not None:
@@ -384,116 +344,345 @@ def load_user_data(username, role, college):
             st.session_state["copula_score"] = copula
             st.session_state["batch_note"] = batch_name
 
-# ===== 侧边栏 =====
-def render_sidebar():
-    role = st.session_state["role"]
-    username = st.session_state["username"]
-    college = st.session_state["user_college"]
-    with st.sidebar:
-        st.markdown('<div class="sidebar-title">🧠 心理健康监测平台</div>', unsafe_allow_html=True)
-        st.markdown("---")
-        st.markdown(f"**用户：** {username}")
-        role_map = {"student":"学生端", "teacher":"教师端", "admin":"管理端"}
-        st.markdown(f"**角色：** {role_map[role]}")
-        if college:
-            st.markdown(f"**学院：** {college}")
-        st.markdown("---")
-        st.markdown("#### 功能导航")
-        module_list = []
-        if role == "student":
-            module_list = ["心理普查（自评问卷）", "个人状态画像雷达图", "历史自评存档", "个性化心理建议库"]
-        elif role == "teacher":
-            module_list = ["心理普查批量筛查", "风险分级统计看板", "高危预警管理", "学生个案追踪档案", "班级趋势分析图表"]
-        elif role == "admin":
-            module_list = ["首页概览", "学生管理", "心理评估", "预警监测", "干预管理", "统计分析", "资源中心", "系统设置"]
-        selected = st.selectbox("选择模块", module_list, label_visibility="collapsed")
-        if selected != st.session_state["current_module"]:
-            st.session_state["current_module"] = selected
-            st.rerun()
-        st.markdown("---")
-        st.caption("底层算法：贝叶斯变点 + Copula")
-        if st.button("🚪 退出登录", use_container_width=True):
-            st.session_state["page_root"] = "home"
-            st.session_state["role"] = ""
-            st.session_state["username"] = ""
-            st.session_state["user_college"] = None
-            st.rerun()
-
-# ===== 门户首页 =====
-def render_home_page():
-    st.markdown("<br>" * 2, unsafe_allow_html=True)
-    st.markdown("""
-        <div style="text-align: center; font-size: 36px; font-weight: 900; color: #364fc7;
-             text-shadow: 0 2px 12px rgba(54,79,199,0.2); margin-bottom: 0.2rem;
-             padding: 0 15px; line-height: 1.4; width: 100%; overflow: visible;
-             white-space: normal; word-wrap: break-word;">
-            基于贝叶斯在线变点检测与Copula相依结构的高校心理健康动态监测与智能预警平台
+# ===== 访客首页顶部导航 =====
+def render_top_nav_home():
+    nav_html = """
+    <style>
+        .top-nav-home {
+            background: linear-gradient(135deg, #0F4C99, #1a6bc4);
+            padding: 0 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 84px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.20);
+            border-radius: 16px;
+            margin-top: 40px;
+            margin-bottom:12px;
+            border: 1px solid rgba(255,255,255,0.10);
+        }
+        .nav-brand {
+            color: white;
+            font-size: 26px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            white-space: nowrap;
+        }
+        .nav-brand .sub {
+            font-size: 15px;
+            font-weight: 400;
+            opacity: 0.75;
+            margin-left: 6px;
+        }
+        .nav-menu-home {
+            display: flex;
+            gap:10px;
+            flex: 1;
+            margin: 0 2.5rem;
+        }
+        .nav-item-home {
+            color: rgba(255,255,255,0.75);
+            padding: 12px 22px;
+            border-radius:10px;
+            font-size:17px;
+            white-space: nowrap;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .nav-item-home:hover {
+            color: white;
+            background: rgba(255,255,255,0.18);
+        }
+        .nav-item-home.active {
+            color: white;
+            background: rgba(255,255,255,0.26);
+            font-weight: 600;
+        }
+        .nav-user-home {
+            color: rgba(255,255,255,0.92);
+            font-size:16px;
+            display: flex;
+            align-items: center;
+            gap:22px;
+        }
+        .login-btn {
+            background: rgba(255,255,255,0.22);
+            border: 1px solid rgba(255,255,255,0.30);
+            color: white;
+            padding:10px 28px;
+            border-radius:10px;
+            cursor: pointer;
+            font-size:16px;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-btn:hover {
+            background: rgba(255,255,255,0.36);
+            transform: translateY(-2px);
+            box-shadow:0 6px 16px rgba(0,0,0,0.22);
+        }
+        .nav-divider {
+            color: rgba(255,255,255,0.25);
+            font-size:24px;
+        }
+        @media (max-width: 768px) {
+            .top-nav-home {
+                padding: 0 1rem;
+                flex-wrap: wrap;
+                height: auto;
+                min-height:70px;
+                margin-top:20px;
+                border-radius:10px;
+                padding:0.8rem 1rem;
+            }
+            .nav-brand { font-size:20px; }
+            .nav-brand .sub { display:none; }
+            .nav-item-home { font-size:14px; padding:8px 14px; }
+            .nav-user-home { font-size:14px; gap:12px; }
+            .login-btn { padding:7px 16px; font-size:14px; }
+            .nav-menu-home { margin:0 0.4rem; gap:6px; flex-wrap:wrap; }
+            .nav-divider { display:none; }
+        }
+    </style>
+    <div class="top-nav-home">
+        <div class="nav-brand">
+            🧠 心理监测平台
+            <span class="sub">| 健康校园 · 智能预警</span>
         </div>
+        <div class="nav-menu-home">
+            <span class="nav-item-home active">📊 总览大屏</span>
+            <span class="nav-item-home">📝 心理普查</span>
+            <span class="nav-item-home">📈 数据分析</span>
+            <span class="nav-item-home">📚 资源中心</span>
+        </div>
+        <div class="nav-user-home">
+            <span style="opacity:0.65;">👤 访客</span>
+            <span class="nav-divider">|</span>
+            <a href="?login=1" class="login-btn">🔑 登录</a>
+        </div>
+    </div>
+    """
+    st.markdown(nav_html, unsafe_allow_html=True)
+    qp = st.query_params
+    if "login" in qp:
+        st.session_state["page_root"] = "role_login"
+        st.query_params.clear()
+        st.rerun()
+
+# ===== 登录后顶部顶栏 =====
+def render_top_bar():
+    username = st.session_state.get("username","")
+    role = st.session_state.get("role","")
+    college = st.session_state.get("user_college","")
+    html = f"""
+    <div class="top-bar-wrap">
+        <div class="top-bar">
+            <div class="top-logo">🧠 高校心理健康动态监测与智能预警平台</div>
+            <div class="top-user-info">
+                <span>👤 {username}｜{role}｜🏫{college if college else '全校'}</span>
+                <a href="?logout=1" class="logout-btn">🚪退出登录</a>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+    qp = st.query_params
+    if "logout" in qp:
+        st.session_state["page_root"] = "home"
+        st.session_state["role"] = ""
+        st.session_state["username"] = ""
+        st.session_state["user_college"] = None
+        st.query_params.clear()
+        st.rerun()
+
+# ===== 访客首页（圆图一排布局） =====
+def render_home_page():
+    render_top_nav_home()
+    st.markdown("""
+    <div style="text-align:center;padding:0.5rem 0 1rem 0;">
+        <span style="font-size:32px;font-weight:bold;color:#0F4C99;">🏠 心理健康监测总览</span>
+        <span style="font-size:18px;color:#666;margin-left:20px;">基于贝叶斯在线变点检测与Copula相依结构</span>
+    </div>
     """, unsafe_allow_html=True)
-    st.markdown('<div class="hero-sub">底层算法：贝叶斯在线变点检测 + Copula相依结构 | 多角色协同心理健康管理系统</div>', unsafe_allow_html=True)
-    st.divider()
-    st.subheader("🚀 快捷功能入口")
+
     col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        with st.container():
-            st.markdown("""<div class="feature-card"><h3>📝 心理普查</h3><p>学生自评问卷 / 批量筛查</p></div>""", unsafe_allow_html=True)
-            if st.button("进入普查", key="quick_survey", use_container_width=True):
-                st.session_state["page_root"] = "role_login"
-                st.session_state["role"] = "student"
-                st.rerun()
-    with col2:
-        with st.container():
-            st.markdown("""<div class="feature-card"><h3>📊 风险分析</h3><p>智能分级与Copula异常检测</p></div>""", unsafe_allow_html=True)
-            if st.button("查看风险", key="quick_risk", use_container_width=True):
-                st.session_state["page_root"] = "role_login"
-                st.session_state["role"] = "teacher"
-                st.rerun()
-    with col3:
-        with st.container():
-            st.markdown("""<div class="feature-card"><h3>📈 数据决策</h3><p>全校看板与趋势报告</p></div>""", unsafe_allow_html=True)
-            if st.button("数据决策", key="quick_dashboard", use_container_width=True):
-                st.session_state["page_root"] = "role_login"
-                st.session_state["role"] = "admin"
-                st.rerun()
-    with col4:
-        with st.container():
-            st.markdown("""<div class="feature-card"><h3>🧑‍🏫 个案追踪</h3><p>学生档案与预警管理</p></div>""", unsafe_allow_html=True)
-            if st.button("追踪档案", key="quick_case", use_container_width=True):
-                st.session_state["page_root"] = "role_login"
-                st.session_state["role"] = "teacher"
-                st.rerun()
+    metric_data = [
+        {"title":"在校学生总数","value":"28,542","delta":"↑4.2%","color":"#0F4C99"},
+        {"title":"已完成测评人数","value":"24,532","delta":"完成率 86.0%","color":"#1967D2"},
+        {"title":"当前预警总人数","value":"1,257","delta":"预警占比5.1%","color":"#D93025"},
+        {"title":"干预中人数","value":"842","delta":"干预率3.4%","color":"#2E7D32"},
+    ]
+    for idx, col in enumerate([col1, col2, col3, col4]):
+        item = metric_data[idx]
+        with col:
+            st.markdown(f"""
+            <div style="background-color:{item['color']};border-radius:16px;padding:24px;color:white;box-shadow:0 6px 16px #00000022;">
+                <div style="font-size:15px;opacity:0.85;">{item['title']}</div>
+                <div style="font-size:36px;font-weight:bold;margin:10px 0;">{item['value']}</div>
+                <div style="font-size:14px;">{item['delta']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
     st.divider()
-    st.markdown("### 请选择您的登录角色进入对应系统")
-    col1, col2, col3 = st.columns(3, gap="large")
-    with col1:
-        with st.container():
-            st.markdown("""<div class="role-card"><h2>👨‍🎓 学生端</h2><p>心理普查自评、多维度状态雷达画像、历史存档、个性化心理疏导建议、自评数据导出</p></div>""", unsafe_allow_html=True)
-            if st.button("进入学生端系统", use_container_width=True, key="home_student"):
+    # ===== 第一排：饼图 + 雷达图（圆图一排） =====
+    row1_col1, row1_col2 = st.columns(2)
+    with row1_col1:
+        st.markdown("**📊 预警分层统计**")
+        pie_labels = ["高危", "中危", "低风险"]
+        pie_vals = [312, 945, 22620]
+        pie_colors = ["#D93025", "#F57C00", "#2E7D32"]
+        fig_pie, ax_pie = plt.subplots(figsize=(10, 5), dpi=110)
+        wedges, texts, autotexts = ax_pie.pie(pie_vals, labels=pie_labels, colors=pie_colors,
+                                              autopct="%.1f%%", startangle=90,
+                                              textprops={'fontsize': 11})
+        wedges[0].set_edgecolor('white')
+        wedges[0].set_linewidth(2)
+        ax_pie.set_title(f"总测评人数 {sum(pie_vals):,}", fontsize=12)
+        st.pyplot(fig_pie)
+    with row1_col2:
+        st.markdown("**🕸️ 风险维度分布**")
+        fig_radar = plt.figure(figsize=(10, 5), dpi=110)
+        ax_radar = fig_radar.add_subplot(111, polar=True)
+        labels = ["焦虑风险", "睡眠问题", "学业压力", "社交压力", "生活满意度"]
+        values = [68, 55, 72, 48, 22]
+        N = len(labels)
+        angles = [n / float(N) * 2 * math.pi for n in range(N)]
+        values_plot = values + [values[0]]
+        angles_plot = angles + [angles[0]]
+        ax_radar.plot(angles_plot, values_plot, color="#D93025", linewidth=2)
+        ax_radar.fill(angles_plot, values_plot, color="#D93025", alpha=0.25)
+        ax_radar.set_xticks(angles)
+        ax_radar.set_xticklabels(labels, fontsize=10)
+        ax_radar.set_yticks([20, 40, 60, 80])
+        ax_radar.set_ylim(0, 100)
+        st.pyplot(fig_radar)
+
+    # ===== 第二排：折线图 + 柱状图 =====
+    row2_col1, row2_col2 = st.columns(2)
+    with row2_col1:
+        st.markdown("**📈 心理风险趋势（月度）**")
+        months = pd.date_range("2024-01-01", "2025-03-01", freq="MS").strftime("%Y-%m").tolist()
+        np.random.seed(42)
+        trend = np.linspace(35, 25, len(months)) + np.random.normal(0, 2, len(months))
+        for i, m in enumerate(months):
+            if m >= "2024-06":
+                trend[i] += 8 * (1 - np.exp(-0.3 * (i - 5)))
+        fig_trend, ax_trend = plt.subplots(figsize=(10, 5), dpi=110)
+        ax_trend.plot(months, trend, color="#0F4C99", linewidth=2, marker='o', markersize=4)
+        ax_trend.set_xticks(months[::3])
+        ax_trend.tick_params(axis='x', rotation=45)
+        ax_trend.set_ylabel("风险指数")
+        ax_trend.grid(alpha=0.2)
+        for sp in ["top", "right"]:
+            ax_trend.spines[sp].set_visible(False)
+        fig_trend.tight_layout()
+        st.pyplot(fig_trend)
+    with row2_col2:
+        st.markdown("**📊 风险等级人数**")
+        risk_levels = ["高危", "中危", "低风险"]
+        counts = [312, 945, 22620]
+        colors_bar = ["#D93025", "#F57C00", "#2E7D32"]
+        fig_bar, ax_bar = plt.subplots(figsize=(10, 5), dpi=110)
+        bars = ax_bar.bar(risk_levels, counts, color=colors_bar, width=0.5)
+        for bar, count in zip(bars, counts):
+            ax_bar.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 100,
+                        f"{count:,}", ha='center', fontsize=10, fontweight='bold')
+        ax_bar.set_ylabel("人数", fontsize=10)
+        ax_bar.tick_params(axis='both', labelsize=10)
+        for spine in ['top', 'right']:
+            ax_bar.spines[spine].set_visible(False)
+        fig_bar.tight_layout()
+        st.pyplot(fig_bar)
+
+    st.divider()
+    cc1, cc2, cc3 = st.columns([3, 2, 2])
+    with cc1:
+        st.markdown("**🔍 Copula相依结构分析（抑郁×焦虑风险）**")
+        fig_cop, ax_cop = plt.subplots(figsize=(11, 5), dpi=110)
+        n_sample = 1200
+        cov_mat = [[1, 0.72], [0.72, 1]]
+        data_cop = np.random.multivariate_normal([12, 14], cov_mat, size=n_sample)
+        sc = ax_cop.scatter(data_cop[:,0], data_cop[:,1], c=data_cop[:,0]+data_cop[:,1],
+                            cmap="jet", alpha=0.6, s=14)
+        fig_cop.colorbar(sc, ax=ax_cop, label="综合风险分数")
+        ax_cop.set_xlabel("抑郁风险得分")
+        ax_cop.set_ylabel("焦虑风险得分")
+        for sp in ["top", "right"]:
+            ax_cop.spines[sp].set_visible(False)
+        fig_cop.tight_layout()
+        st.pyplot(fig_cop)
+    with cc2:
+        st.markdown("**📈 干预效果评估（近6个月）**")
+        fig_eff, ax_eff = plt.subplots(figsize=(5, 4.5), dpi=110)
+        month = ["3月", "4月", "5月", "6月", "7月", "8月"]
+        eff_rate = [62, 67, 71, 74, 77, 78.6]
+        ax_eff.plot(month, eff_rate, marker="o", color="#0F4C99", linewidth=2)
+        ax_eff.set_ylim(50, 90)
+        ax_eff.set_ylabel("干预有效率%")
+        for sp in ["top", "right"]:
+            ax_eff.spines[sp].set_visible(False)
+        fig_eff.tight_layout()
+        st.pyplot(fig_eff)
+    with cc3:
+        st.markdown("**🚨 预警动态（最新）**")
+        warn_df = pd.DataFrame([
+            {"学号":"202201041","姓名":"张同学","学院":"计算机学院","风险等级":"高危预警","时间":"2026-08-10"},
+            {"学号":"202203072","姓名":"李同学","学院":"外国语学院","风险等级":"中风险预警","时间":"2026-08-10"},
+            {"学号":"202302015","姓名":"王同学","学院":"经济管理学院","风险等级":"高危预警","时间":"2026-08-09"},
+            {"学号":"202105033","姓名":"赵同学","学院":"艺术学院","风险等级":"中风险预警","时间":"2026-08-09"},
+            {"学号":"202201088","姓名":"孙同学","学院":"文学院","风险等级":"低风险预警","时间":"2026-08-08"},
+        ])
+        def warn_color(val):
+            if "高危" in val:
+                return "background-color:#ffe8e8;color:#c00000"
+            elif "中风险" in val:
+                return "background-color:#fff3e0;color:#e65100"
+            else:
+                return "background-color:#e8f5e9;color:#2e7d32"
+        st.dataframe(warn_df.style.map(warn_color, subset=["风险等级"]),
+                     hide_index=True, use_container_width=True, height=320)
+    st.divider()
+    st.markdown("### 🧩 快捷功能入口")
+    b1,b2,b3,b4,b5,b6,b7,b8 = st.columns(8)
+    btn_info = [
+        ("📝", "心理普查", "student"),
+        ("⚠️", "风险分析", "teacher"),
+        ("📈", "数据决策", "admin"),
+        ("👤", "个案追踪", "teacher"),
+        ("🏛️", "管理后台", "admin"),
+        ("📊", "统计分析", "admin"),
+        ("📚", "资源中心", "admin"),
+        ("⚙️", "系统设置", "admin")
+    ]
+    for idx, col in enumerate([b1,b2,b3,b4,b5,b6,b7,b8]):
+        icon, txt, role = btn_info[idx]
+        with col:
+            if st.button(f"{icon}\n{txt}", key=f"home_quick_{idx}", use_container_width=True):
                 st.session_state["page_root"] = "role_login"
-                st.session_state["role"] = "student"
+                st.session_state["role"] = role
                 st.rerun()
-    with col2:
-        with st.container():
-            st.markdown("""<div class="role-card"><h2>👩‍🏫 教师端</h2><p>批量贝叶斯-Copula风险筛查、全套算法可视化图表、预警管理、个案追踪、班级趋势、多报表导出</p></div>""", unsafe_allow_html=True)
-            if st.button("进入教师端系统", use_container_width=True, key="home_teacher"):
-                st.session_state["page_root"] = "role_login"
-                st.session_state["role"] = "teacher"
-                st.rerun()
-    with col3:
-        with st.container():
-            st.markdown("""<div class="role-card"><h2>🏛️ 管理端</h2><p>首页大屏概览、学生管理、预警监测、干预管理、统计分析、资源中心、系统参数配置</p></div>""", unsafe_allow_html=True)
-            if st.button("进入管理端系统", use_container_width=True, key="home_admin"):
-                st.session_state["page_root"] = "role_login"
-                st.session_state["role"] = "admin"
-                st.rerun()
+            st.caption(f"👤 {role}端")
+    st.divider()
+    st.caption("📊 数据来源：基于模拟数据展示 | 算法：贝叶斯在线变点检测 + Copula相依结构 | 更新：2026-08-18")
 
 # ===== 登录页 =====
 def render_role_login():
     st.markdown("<br>" * 4, unsafe_allow_html=True)
     role_map = {"student": "学生端", "teacher": "教师端", "admin": "管理端"}
-    role_cn = role_map[st.session_state["role"]]
+    role = st.session_state.get("role", "")
+    if not role or role not in role_map:
+        st.warning("请先选择登录角色（从首页进入）")
+        if st.button("返回首页", use_container_width=True):
+            st.session_state["page_root"] = "home"
+            st.rerun()
+        return
+    role_cn = role_map[role]
     st.markdown(f"""
-        <div style="text-align:center;font-size:36px;font-weight:900;color:#364fc7;
+        <div style="text-align:center;font-size:38px;font-weight:900;color:#364fc7;
              text-shadow:0 2px 12px rgba(54,79,199,0.2);margin-bottom:0.2rem;">
             {role_cn}登录
         </div>
@@ -511,15 +700,15 @@ def render_role_login():
             with col_b:
                 if st.button("登录", type="primary", use_container_width=True):
                     if user.strip() and pwd.strip():
-                        role, college = login_user(user.strip(), pwd.strip())
-                        if role:
+                        role_result, college = login_user(user.strip(), pwd.strip())
+                        if role_result:
                             st.session_state["username"] = user
-                            st.session_state["role"] = role
+                            st.session_state["role"] = role_result
                             st.session_state["user_college"] = college
                             mod_map = {"student": "心理普查（自评问卷）", "teacher": "心理普查批量筛查", "admin": "首页概览"}
-                            st.session_state["current_module"] = mod_map[role]
+                            st.session_state["current_module"] = mod_map[role_result]
                             st.session_state["page_root"] = "main"
-                            load_user_data(user, role, college)
+                            load_user_data(user, role_result, college)
                             st.rerun()
                         else:
                             st.error("用户名或密码错误")
@@ -527,26 +716,10 @@ def render_role_login():
                         st.error("请输入账号和密码")
             st.caption("默认管理员：admin / admin123 | 教师：teacher / 123456 | 学生：student / 123456")
 
-# ===== 主系统 =====
-def render_main_system():
-    render_sidebar()
-    role = st.session_state["role"]
-    curr_mod = st.session_state["current_module"]
-    with st.container():
-        st.markdown('<div class="module-card">', unsafe_allow_html=True)
-        if role == "student":
-            render_student_module(curr_mod)
-        elif role == "teacher":
-            render_teacher_module(curr_mod)
-        elif role == "admin":
-            render_admin_module(curr_mod)
-        st.markdown('</div>', unsafe_allow_html=True)
-
 # ========================== 学生端模块 ==========================
 def render_student_module(module):
     history = st.session_state["student_self_history"]
     college = st.session_state["user_college"]
-
     if module == "心理普查（自评问卷）":
         st.header("📝 学生心理自评普查问卷")
         st.info("填写量表完成自评，自动存档历史记录，生成多维心理画像")
@@ -554,6 +727,7 @@ def render_student_module(module):
             st.warning("📭 暂无自评数据，请填写问卷提交，或点击下方按钮加载示例数据体验")
             if st.button("📥 加载示例自评数据", type="primary"):
                 generate_student_example()
+                st.rerun()
         with st.container(border=True):
             st.markdown("#### 📋 填写量表")
             with st.form("self_form", clear_on_submit=True):
@@ -576,13 +750,13 @@ def render_student_module(module):
                 save_self_assess(st.session_state["username"], self_data, college)
                 st.success(f"✅ 自评提交成功，已保存至历史存档，提交时间：{now}")
                 st.rerun()
-
     elif module == "个人状态画像雷达图":
         st.header("📊 个人多维度心理状态雷达画像")
         if not history:
             st.warning("📭 暂无自评数据，请先前往【心理普查（自评问卷）】提交数据或加载示例数据")
             if st.button("📥 加载示例自评数据", type="primary"):
                 generate_student_example()
+                st.rerun()
             return
         latest = history[-1]
         dims = ["焦虑","抑郁","压力","睡眠障碍","社交回避"]
@@ -609,13 +783,13 @@ def render_student_module(module):
                 ax.set_xticklabels(dims)
                 ax.set_title("个人心理五维度雷达画像", fontsize=14)
                 st.pyplot(fig)
-
     elif module == "历史自评存档":
         st.header("🗃️ 个人自评历史存档记录")
         if not history:
             st.warning("📭 暂无自评记录，请先前往【心理普查（自评问卷）】提交数据或加载示例数据")
             if st.button("📥 加载示例自评数据", type="primary"):
                 generate_student_example()
+                st.rerun()
             return
         all_df = pd.concat(history, ignore_index=True)
         with st.container(border=True):
@@ -627,13 +801,13 @@ def render_student_module(module):
             ax.set_ylabel("总分")
             ax.grid(alpha=0.2)
             st.pyplot(fig)
-
     elif module == "个性化心理建议库":
         st.header("💡 分级个性化心理疏导建议库")
         if not history:
             st.warning("📭 暂无自评数据，请先前往【心理普查（自评问卷）】提交数据或加载示例数据")
             if st.button("📥 加载示例自评数据", type="primary"):
                 generate_student_example()
+                st.rerun()
             return
         latest = history[-1]
         a = latest["焦虑"].iloc[0]
@@ -641,7 +815,6 @@ def render_student_module(module):
         s = latest["压力"].iloc[0]
         slp = latest["睡眠障碍"].iloc[0]
         soc = latest["社交回避"].iloc[0]
-
         st.subheader("🧠 智能分级疏导建议")
         has_advice = False
         if a >= 25:
@@ -676,12 +849,11 @@ def render_teacher_module(module):
     mid_thr = st.session_state["global_mid_thr"]
     batch_note = st.session_state["batch_note"]
     college = st.session_state["user_college"]
-
     def empty_state_with_load():
         st.warning("📭 暂无筛查数据，请先上传Excel文件进行批量筛查，或点击下方按钮加载示例数据")
         if st.button("📥 加载示例教师数据", type="primary"):
             generate_teacher_example()
-
+            st.rerun()
     if module == "心理普查批量筛查":
         st.header("📤 批量学生普查数据筛查（贝叶斯-Copula完整算法）")
         st.info("上传班级Excel量表数据，自动执行风险分级、变点检测、Copula相依异常识别")
@@ -693,7 +865,6 @@ def render_teacher_module(module):
                 with col_p2:
                     local_mid = st.slider("本次中危风险阈值", min_value=0.2, max_value=1.2, value=mid_thr, step=0.05)
                 batch_note_input = st.text_input("本批次普查备注", placeholder="例如：2026秋季大一计算机班普查")
-
         with st.container(border=True):
             upload = st.file_uploader("上传普查Excel(xlsx)", type=["xlsx","xls"])
             if upload:
@@ -715,13 +886,10 @@ def render_teacher_module(module):
                         st.session_state["trace_cache"] = trace
                         st.session_state["copula_score"] = copula_abnormal_score
                         st.session_state["batch_note"] = batch_note_input
-                        # 存入数据库（带上学院）
                         save_screen_batch(batch_note_input, st.session_state["username"], college, tau_mean, df_out, copula_abnormal_score)
-                        # 高危预警自动存入台账
                         high_risk_df = df_out[df_out['风险等级']=='高危']
                         for _, row in high_risk_df.iterrows():
                             save_alert(str(row['编号']), f"学生{row['编号']}", college, '高危', status='待跟进')
-                        # 发送通知
                         webhook = os.getenv("WECHAT_WEBHOOK")
                         if webhook:
                             send_wechat_robot(webhook, f"预警通知：{len(high_risk_df)}名学生触发高危，请登录平台查看。")
@@ -729,8 +897,6 @@ def render_teacher_module(module):
                         st.rerun()
             else:
                 empty_state_with_load()
-
-        # 显示已缓存的结果
         if df_cache is not None:
             risk_cnt = df_cache["风险等级"].value_counts()
             c1,c2,c3,c4 = st.columns(4)
@@ -738,7 +904,6 @@ def render_teacher_module(module):
             with c2: st.markdown(_metric_card_html("中危人数", risk_cnt.get("中危",0), color="#F57C00"), unsafe_allow_html=True)
             with c3: st.markdown(_metric_card_html("低危人数", risk_cnt.get("低危",0), color="#2E7D32"), unsafe_allow_html=True)
             with c4: st.markdown(_metric_card_html("本次总样本", len(df_cache), color="#0F4C99"), unsafe_allow_html=True)
-
             trace = st.session_state.get("trace_cache")
             if trace is not None:
                 with st.container(border=True):
@@ -772,7 +937,6 @@ def render_teacher_module(module):
                 ax4.pie(risk_pie.values,labels=risk_pie.index,colors=pie_color,autopct="%.1f%%",textprops={"fontsize":11})
                 ax4.set_title("样本风险分级占比",fontsize=13)
                 st.pyplot(fig2)
-
                 stat_df = pd.DataFrame({
                     "风险等级":["高危","中危","低危"],
                     "样本数量":[risk_cnt.get("高危",0),risk_cnt.get("中危",0),risk_cnt.get("低危",0)],
@@ -784,11 +948,9 @@ def render_teacher_module(module):
                 })
                 if st.button("📄 生成Word报告"):
                     generate_word_report(batch_note, tau_cache, df_cache, stat_df, fig2)
-
             with st.container(border=True):
                 st.markdown("### 📋 风险统计明细")
                 st.dataframe(stat_df, hide_index=True, use_container_width=True)
-
             with st.container(border=True):
                 st.markdown("### 🔍 Copula高异常样本筛选")
                 if copula_scores is not None:
@@ -796,13 +958,11 @@ def render_teacher_module(module):
                     mask = copula_scores>filter_score
                     st.info(f"异常分高于{filter_score:.2f}的样本数量：{np.sum(mask)}")
                     st.dataframe(df_cache.loc[mask,:],use_container_width=True)
-
             with st.container(border=True):
                 st.markdown("### 📃 全部筛查结果表")
                 show_high_only = st.checkbox("仅展示高危预警学生")
                 display_df = df_cache[df_cache["风险等级"]=="高危"] if show_high_only else df_cache
                 st.dataframe(display_df, use_container_width=True)
-
             csv_full = df_cache.to_csv(index=False, encoding="utf_8_sig")
             csv_stat = stat_df.to_csv(index=False, encoding="utf_8_sig")
             col_d1,col_d2 = st.columns(2)
@@ -810,7 +970,6 @@ def render_teacher_module(module):
                 st.download_button("📥 导出完整筛查结果CSV", data=csv_full, file_name=f"班级筛查_{batch_note}.csv", use_container_width=True)
             with col_d2:
                 st.download_button("📥 导出风险统计汇总CSV", data=csv_stat, file_name=f"统计报表_{batch_note}.csv", use_container_width=True)
-
     elif module == "风险分级统计看板":
         st.header("📈 班级风险分级综合统计看板")
         if df_cache is None:
@@ -832,7 +991,6 @@ def render_teacher_module(module):
                 "占比%": [round(x/len(df_cache)*100,2) for x in risk_cnt.values]
             })
             st.dataframe(stat_df, hide_index=True)
-
     elif module == "高危预警管理":
         st.header("🚨 高危学生预警管理台账")
         if df_cache is None:
@@ -846,7 +1004,6 @@ def render_teacher_module(module):
             st.text_area("📝 批量干预记录填写", placeholder="记录约谈、疏导、回访、转介心理中心情况", height=100)
         csv_high = high_df.to_csv(index=False, encoding="utf_8_sig")
         st.download_button("📥 导出高危预警台账", data=csv_high, file_name="高危学生预警名单.csv", use_container_width=True)
-
         with st.expander("➕ 创建干预任务"):
             if len(high_df) > 0:
                 student_id = st.selectbox("选择学生编号", high_df['编号'].astype(str).tolist())
@@ -858,11 +1015,11 @@ def render_teacher_module(module):
                     if plan and handler:
                         save_intervention(student_id, college, plan, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"), handler)
                         st.success("干预任务已创建")
+                        st.rerun()
                     else:
                         st.error("请填写完整信息")
             else:
                 st.info("当前无高危学生")
-
         with st.expander("📧 发送预警通知"):
             recipient = st.text_input("辅导员邮箱")
             if st.button("发送测试通知"):
@@ -870,7 +1027,6 @@ def render_teacher_module(module):
                     send_email(recipient, "心理预警通知", f"学生{student_id}触发高危预警，请及时处理。")
                 else:
                     st.error("请输入邮箱")
-
     elif module == "学生个案追踪档案":
         st.header("👤 学生个案长期追踪档案")
         if df_cache is None:
@@ -883,7 +1039,6 @@ def render_teacher_module(module):
             st.dataframe(stu_data, hide_index=True)
         with st.container(border=True):
             st.text_area("📝 个案追踪记录", placeholder="历次沟通、干预、心理变化记录存档", height=150)
-
     elif module == "班级趋势分析图表":
         st.header("📉 班级心理总分时序趋势分析")
         if df_cache is None:
@@ -915,94 +1070,31 @@ def render_admin_dashboard():
         item = metric_data[idx]
         with col:
             st.markdown(f"""
-            <div style="background-color:{item['color']};border-radius:12px;padding:20px;color:white;box-shadow:0 4px 12px #00000022">
-                <div style="font-size:14px;opacity:0.85;">{item['title']}</div>
-                <div style="font-size:34px;font-weight:bold;margin:8px 0;">{item['value']}</div>
-                <div style="font-size:13px;">{item['delta']}</div>
+            <div style="background-color:{item['color']};border-radius:16px;padding:24px;color:white;box-shadow:0 6px 16px #00000022;">
+                <div style="font-size:15px;opacity:0.85;">{item['title']}</div>
+                <div style="font-size:36px;font-weight:bold;margin:10px 0;">{item['value']}</div>
+                <div style="font-size:14px;">{item['delta']}</div>
             </div>
             """, unsafe_allow_html=True)
     st.divider()
-
-    c_left, c_mid, c_right = st.columns([3, 2, 2])
-    with c_left:
-        st.markdown("**📈 心理风险趋势（月度）**")
-        months = pd.date_range("2024-01-01", "2025-03-01", freq="MS").strftime("%Y-%m").tolist()
-        np.random.seed(42)
-        trend = np.linspace(35, 25, len(months)) + np.random.normal(0, 2, len(months))
-        for i, m in enumerate(months):
-            if m >= "2024-06":
-                trend[i] += 8 * (1 - np.exp(-0.3 * (i - 5)))
-        fig_trend, ax_trend = plt.subplots(figsize=(10, 4), dpi=100)
-        ax_trend.plot(months, trend, color="#0F4C99", linewidth=2, marker='o', markersize=4)
-        ax_trend.set_xticks(months[::3])
-        ax_trend.tick_params(axis='x', rotation=45)
-        ax_trend.set_ylabel("风险指数")
-        ax_trend.grid(alpha=0.2)
-        for sp in ["top", "right"]:
-            ax_trend.spines[sp].set_visible(False)
-        fig_trend.tight_layout()
-        st.pyplot(fig_trend)
-
-    with c_mid:
+    # ===== 第一排：饼图 + 雷达图（圆图一排） =====
+    row1_col1, row1_col2 = st.columns(2)
+    with row1_col1:
         st.markdown("**📊 预警分层统计**")
         pie_labels = ["高危", "中危", "低风险"]
         pie_vals = [312, 945, 22620]
         pie_colors = ["#D93025", "#F57C00", "#2E7D32"]
-        fig_pie, ax_pie = plt.subplots(figsize=(4.2, 4.2), dpi=100)
-        ax_pie.pie(pie_vals, labels=pie_labels, colors=pie_colors, autopct="%.1f%%", startangle=90)
-        ax_pie.set_title(f"总测评人数 {sum(pie_vals):,}", fontsize=11)
+        fig_pie, ax_pie = plt.subplots(figsize=(10, 5), dpi=110)
+        wedges, texts, autotexts = ax_pie.pie(pie_vals, labels=pie_labels, colors=pie_colors,
+                                              autopct="%.1f%%", startangle=90,
+                                              textprops={'fontsize': 11})
+        wedges[0].set_edgecolor('white')
+        wedges[0].set_linewidth(2)
+        ax_pie.set_title(f"总测评人数 {sum(pie_vals):,}", fontsize=12)
         st.pyplot(fig_pie)
-
-    with c_right:
-        st.markdown("**🚨 预警动态（最新）**")
-        warn_df = pd.DataFrame([
-            {"学号":"202201041","姓名":"张同学","学院":"计算机学院","风险等级":"高危预警","时间":"2026-08-10 10:30"},
-            {"学号":"202203072","姓名":"李同学","学院":"外国语学院","风险等级":"中风险预警","时间":"2026-08-10 09:15"},
-            {"学号":"202302015","姓名":"王同学","学院":"经济管理学院","风险等级":"高危预警","时间":"2026-08-09 08:45"},
-            {"学号":"202105033","姓名":"赵同学","学院":"艺术学院","风险等级":"中风险预警","时间":"2026-08-09 17:20"},
-        ])
-        def warn_color(val):
-            if "高危" in val:
-                return "background-color:#ffe8e8;color:#c00000"
-            else:
-                return "background-color:#fff3e0;color:#e65100"
-                st.dataframe(warn_df.style.map(warn_color, subset=["风险等级"]),
-                     hide_index=True, use_container_width=True, height=300)
-
-    st.divider()
-
-    cc1, cc2, cc3 = st.columns([3, 2, 2])
-    with cc1:
-        st.markdown("**🔍 Copula相依结构分析（抑郁×焦虑风险）**")
-        fig_cop, ax_cop = plt.subplots(figsize=(9, 4), dpi=100)
-        n_sample = 1200
-        cov_mat = [[1, 0.72], [0.72, 1]]
-        data_cop = np.random.multivariate_normal([12, 14], cov_mat, size=n_sample)
-        sc = ax_cop.scatter(data_cop[:,0], data_cop[:,1], c=data_cop[:,0]+data_cop[:,1],
-                            cmap="jet", alpha=0.6, s=12)
-        fig_cop.colorbar(sc, ax=ax_cop, label="综合风险分数")
-        ax_cop.set_xlabel("抑郁风险得分")
-        ax_cop.set_ylabel("焦虑风险得分")
-        for sp in ["top", "right"]:
-            ax_cop.spines[sp].set_visible(False)
-        fig_cop.tight_layout()
-        st.pyplot(fig_cop)
-
-    with cc2:
-        st.markdown("**📈 干预效果评估（近6个月）**")
-        fig_eff, ax_eff = plt.subplots(figsize=(4.2, 4), dpi=100)
-        month = ["3月", "4月", "5月", "6月", "7月", "8月"]
-        eff_rate = [62, 67, 71, 74, 77, 78.6]
-        ax_eff.plot(month, eff_rate, marker="o", color="#0F4C99", linewidth=2)
-        ax_eff.set_ylim(50, 90)
-        ax_eff.set_ylabel("干预有效率%")
-        for sp in ["top", "right"]:
-            ax_eff.spines[sp].set_visible(False)
-        st.pyplot(fig_eff)
-
-    with cc3:
-        st.markdown("**🕸️ 风险维度分布雷达图**")
-        fig_radar = plt.figure(figsize=(4.2, 4.2), dpi=100)
+    with row1_col2:
+        st.markdown("**🕸️ 风险维度分布**")
+        fig_radar = plt.figure(figsize=(10, 5), dpi=110)
         ax_radar = fig_radar.add_subplot(111, polar=True)
         labels = ["生活满意度", "焦虑风险", "睡眠问题", "学业压力", "社交压力"]
         values = [22, 68, 55, 72, 48]
@@ -1013,11 +1105,92 @@ def render_admin_dashboard():
         ax_radar.plot(angles_plot, values_plot, color="#D93025", linewidth=2)
         ax_radar.fill(angles_plot, values_plot, color="#D93025", alpha=0.25)
         ax_radar.set_xticks(angles)
-        ax_radar.set_xticklabels(labels, fontsize=9)
+        ax_radar.set_xticklabels(labels, fontsize=10)
         ax_radar.set_yticks([20, 40, 60, 80])
         ax_radar.set_ylim(0, 100)
         st.pyplot(fig_radar)
 
+    # ===== 第二排：折线图 + 柱状图 =====
+    row2_col1, row2_col2 = st.columns(2)
+    with row2_col1:
+        st.markdown("**📈 心理风险趋势（月度）**")
+        months = pd.date_range("2024-01-01", "2025-03-01", freq="MS").strftime("%Y-%m").tolist()
+        np.random.seed(42)
+        trend = np.linspace(35, 25, len(months)) + np.random.normal(0, 2, len(months))
+        for i, m in enumerate(months):
+            if m >= "2024-06":
+                trend[i] += 8 * (1 - np.exp(-0.3 * (i - 5)))
+        fig_trend, ax_trend = plt.subplots(figsize=(10, 5), dpi=110)
+        ax_trend.plot(months, trend, color="#0F4C99", linewidth=2, marker='o', markersize=4)
+        ax_trend.set_xticks(months[::3])
+        ax_trend.tick_params(axis='x', rotation=45)
+        ax_trend.set_ylabel("风险指数")
+        ax_trend.grid(alpha=0.2)
+        for sp in ["top", "right"]:
+            ax_trend.spines[sp].set_visible(False)
+        fig_trend.tight_layout()
+        st.pyplot(fig_trend)
+    with row2_col2:
+        st.markdown("**📊 风险等级人数**")
+        risk_levels = ["高危", "中危", "低风险"]
+        counts = [312, 945, 22620]
+        colors_bar = ["#D93025", "#F57C00", "#2E7D32"]
+        fig_bar, ax_bar = plt.subplots(figsize=(10, 5), dpi=110)
+        bars = ax_bar.bar(risk_levels, counts, color=colors_bar, width=0.5)
+        for bar, count in zip(bars, counts):
+            ax_bar.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 100,
+                        f"{count:,}", ha='center', fontsize=10, fontweight='bold')
+        ax_bar.set_ylabel("人数", fontsize=10)
+        ax_bar.tick_params(axis='both', labelsize=10)
+        for spine in ['top', 'right']:
+            ax_bar.spines[spine].set_visible(False)
+        fig_bar.tight_layout()
+        st.pyplot(fig_bar)
+
+    st.divider()
+    cc1, cc2, cc3 = st.columns([3, 2, 2])
+    with cc1:
+        st.markdown("**🔍 Copula相依结构分析（抑郁×焦虑风险）**")
+        fig_cop, ax_cop = plt.subplots(figsize=(11, 5), dpi=110)
+        n_sample = 1200
+        cov_mat = [[1, 0.72], [0.72, 1]]
+        data_cop = np.random.multivariate_normal([12, 14], cov_mat, size=n_sample)
+        sc = ax_cop.scatter(data_cop[:,0], data_cop[:,1], c=data_cop[:,0]+data_cop[:,1],
+                            cmap="jet", alpha=0.6, s=14)
+        fig_cop.colorbar(sc, ax=ax_cop, label="综合风险分数")
+        ax_cop.set_xlabel("抑郁风险得分")
+        ax_cop.set_ylabel("焦虑风险得分")
+        for sp in ["top", "right"]:
+            ax_cop.spines[sp].set_visible(False)
+        fig_cop.tight_layout()
+        st.pyplot(fig_cop)
+    with cc2:
+        st.markdown("**📈 干预效果评估（近6个月）**")
+        fig_eff, ax_eff = plt.subplots(figsize=(5, 4.5), dpi=110)
+        month = ["3月", "4月", "5月", "6月", "7月", "8月"]
+        eff_rate = [62, 67, 71, 74, 77, 78.6]
+        ax_eff.plot(month, eff_rate, marker="o", color="#0F4C99", linewidth=2)
+        ax_eff.set_ylim(50, 90)
+        ax_eff.set_ylabel("干预有效率%")
+        for sp in ["top", "right"]:
+            ax_eff.spines[sp].set_visible(False)
+        fig_eff.tight_layout()
+        st.pyplot(fig_eff)
+    with cc3:
+        st.markdown("**🚨 预警动态（最新）**")
+        warn_df = pd.DataFrame([
+            {"学号":"202201041","姓名":"张同学","学院":"计算机学院","风险等级":"高危预警","时间":"2026-08-10"},
+            {"学号":"202203072","姓名":"李同学","学院":"外国语学院","风险等级":"中风险预警","时间":"2026-08-10"},
+            {"学号":"202302015","姓名":"王同学","学院":"经济管理学院","风险等级":"高危预警","时间":"2026-08-09"},
+            {"学号":"202105033","姓名":"赵同学","学院":"艺术学院","风险等级":"中风险预警","时间":"2026-08-09"},
+        ])
+        def warn_color(val):
+            if "高危" in val:
+                return "background-color:#ffe8e8;color:#c00000"
+            else:
+                return "background-color:#fff3e0;color:#e65100"
+        st.dataframe(warn_df.style.map(warn_color, subset=["风险等级"]),
+                     hide_index=True, use_container_width=True, height=300)
     st.divider()
     st.markdown("### 🧩 平台快捷功能")
     b1,b2,b3,b4,b5,b6,b7,b8 = st.columns(8)
@@ -1030,19 +1203,19 @@ def render_admin_dashboard():
         icon,txt = btn_info[idx]
         with col:
             st.markdown(f"""
-            <div style="text-align:center;padding:12px 4px;background:#f0f4f9;border-radius:10px;height:90px">
-                <div style="font-size:26px;margin-bottom:6px">{icon}</div>
-                <div style="font-size:12px">{txt}</div>
+            <div style="text-align:center;padding:14px 4px;background:#f0f4f9;border-radius:12px;height:95px">
+                <div style="font-size:28px;margin-bottom:8px">{icon}</div>
+                <div style="font-size:13px">{txt}</div>
             </div>
             """, unsafe_allow_html=True)
 
-# ---- 管理端子模块 ----
 def render_admin_students():
     st.markdown('<div class="dash-title">🧑‍🎓 学生管理</div>', unsafe_allow_html=True)
     if "admin_student_df" not in st.session_state:
         st.warning("📭 暂无学生数据，请点击下方按钮加载示例数据")
         if st.button("📥 加载示例学生数据", type="primary"):
             generate_admin_example()
+            st.rerun()
         return
     stu_df = st.session_state["admin_student_df"]
     with st.container(border=True):
@@ -1155,6 +1328,7 @@ def render_admin_alert():
         st.warning("📭 暂无预警数据，请点击下方按钮加载示例数据")
         if st.button("📥 加载示例预警数据", type="primary"):
             generate_admin_example()
+            st.rerun()
         return
     alert_df = st.session_state["admin_alert_df"]
     col1, col2, col3, col4 = st.columns(4)
@@ -1218,6 +1392,7 @@ def render_admin_intervention():
         st.warning("📭 暂无干预任务，可加载示例数据")
         if st.button("📥 加载示例干预数据", type="primary"):
             generate_admin_example()
+            st.rerun()
         return
     col1, col2, col3 = st.columns(3)
     total = len(interv_df)
@@ -1320,7 +1495,6 @@ def render_admin_stats():
         with st.container(border=True):
             st.markdown("**🧩 风险维度贡献度**")
             st.pyplot(_chart_dim_contribution())
-
     st.markdown("### 🔮 未来风险人数预测（Prophet）")
     try:
         from prophet import Prophet
@@ -1432,7 +1606,6 @@ def render_admin_settings():
                     else:
                         st.error("账号与姓名不能为空")
 
-# ---- 管理端分发 ----
 def render_admin_module(module):
     if module == "首页概览":
         render_admin_dashboard()
@@ -1451,7 +1624,51 @@ def render_admin_module(module):
     elif module == "系统设置":
         render_admin_settings()
 
-# ===== 路由 =====
+# ===== 登录后主系统：顶栏 + 左侧侧边栏 =====
+def render_main_system():
+    render_top_bar()
+    role = st.session_state["role"]
+    if role == "admin":
+        menu_items = ["首页概览", "学生管理", "心理评估", "预警监测", "干预管理", "统计分析", "资源中心", "系统设置"]
+        menu_icons = ["house-fill","people-fill","clipboard2-check-fill","exclamation-triangle-fill","heart-pulse-fill","bar-chart-fill","book-fill","gear-fill"]
+    elif role == "teacher":
+        menu_items = ["心理普查批量筛查", "风险分级统计看板", "高危预警管理", "学生个案追踪档案", "班级趋势分析图表"]
+        menu_icons = ["upload","bar-chart","bell","person-lines-fill","graph-up"]
+    elif role == "student":
+        menu_items = ["心理普查（自评问卷）", "个人状态画像雷达图", "历史自评存档", "个性化心理建议库"]
+        menu_icons = ["pencil-square","radar","clock-history","lightbulb"]
+    else:
+        return
+
+    with st.sidebar:
+        try:
+            default_idx = menu_items.index(st.session_state["current_module"])
+        except ValueError:
+            default_idx = 0
+        selected = option_menu(
+            menu_title="📋 功能导航",
+            options=menu_items,
+            icons=menu_icons,
+            default_index=default_idx,
+            styles={
+                "container":{"background":"#f7f8fa","border-radius":"12px","padding":"8px"},
+                "nav-link":{"font-size":"15px","padding":"12px 14px"},
+                "nav-link-selected":{"background":"#0F4C99","color":"white"}
+            }
+        )
+    if selected != st.session_state["current_module"]:
+        st.session_state["current_module"] = selected
+        st.rerun()
+
+    curr_mod = st.session_state["current_module"]
+    if role == "student":
+        render_student_module(curr_mod)
+    elif role == "teacher":
+        render_teacher_module(curr_mod)
+    elif role == "admin":
+        render_admin_module(curr_mod)
+
+# ===== 路由总入口 =====
 root_page = st.session_state["page_root"]
 if root_page == "home":
     render_home_page()

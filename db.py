@@ -4,12 +4,9 @@ import pandas as pd
 import json
 import numpy as np
 from datetime import datetime
-
 DB_PATH = 'mental_health.db'
-
 def get_conn():
     return sqlite3.connect(DB_PATH)
-
 def init_db():
     conn = get_conn()
     c = conn.cursor()
@@ -85,7 +82,6 @@ def init_db():
                        ("student", student_hash, "student", "计算机学院", "李同学"))
     conn.commit()
     conn.close()
-
 # ===== 用户查询 =====
 def get_user_by_username(username):
     conn = get_conn()
@@ -94,11 +90,9 @@ def get_user_by_username(username):
     if len(df)==0:
         return None
     return df.iloc[0].to_dict()
-
 def get_user_college(username):
     user = get_user_by_username(username)
     return user["college"] if user else None
-
 def create_user(username, password, role, college, fullname):
     from auth import hash_password
     conn = get_conn()
@@ -114,7 +108,6 @@ def create_user(username, password, role, college, fullname):
         return False
     finally:
         conn.close()
-
 # ===== 学生自评（自动转换列名） =====
 def save_self_assess(username, df, college):
     df = df.copy()
@@ -133,7 +126,6 @@ def save_self_assess(username, df, college):
     conn = get_conn()
     df.to_sql('self_assess', conn, if_exists='append', index=False)
     conn.close()
-
 def load_self_assess(username, college=None):
     conn = get_conn()
     sql = f"SELECT * FROM self_assess WHERE username='{username}'"
@@ -153,7 +145,6 @@ def load_self_assess(username, college=None):
             "total": "总分"
         }, inplace=True)
     return df
-
 # ===== 筛查批次 =====
 def save_screen_batch(batch_name, teacher, college, tau, df, copula_scores):
     conn = get_conn()
@@ -165,7 +156,6 @@ def save_screen_batch(batch_name, teacher, college, tau, df, copula_scores):
               (batch_name, teacher, college, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), tau, df_json, copula_json))
     conn.commit()
     conn.close()
-
 def load_latest_screen_batch(college=None):
     conn = get_conn()
     sql = 'SELECT * FROM screen_batches'
@@ -178,7 +168,6 @@ def load_latest_screen_batch(college=None):
         return None, None, None, None
     row = df.iloc[0]
     return row['batch_name'], row['tau'], pd.read_json(row['df_json']), np.array(json.loads(row['copula_json']))
-
 # ===== 预警台账 =====
 def save_alert(student_id, name, college, risk_level, status='待跟进', handler='', note=''):
     conn = get_conn()
@@ -188,7 +177,6 @@ def save_alert(student_id, name, college, risk_level, status='待跟进', handle
               (student_id, name, college, risk_level, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), status, handler, note))
     conn.commit()
     conn.close()
-
 def load_alerts(risk_level=None, status=None, college=None):
     conn = get_conn()
     sql = 'SELECT * FROM alerts'
@@ -205,14 +193,12 @@ def load_alerts(risk_level=None, status=None, college=None):
     df = pd.read_sql(sql, conn)
     conn.close()
     return df
-
 def update_alert_status(alert_id, status, note=''):
     conn = get_conn()
     c = conn.cursor()
     c.execute('UPDATE alerts SET status=?, note=? WHERE id=?', (status, note, alert_id))
     conn.commit()
     conn.close()
-
 # ===== 干预任务 =====
 def save_intervention(student_id, college, plan, start_time, end_time, handler):
     conn = get_conn()
@@ -222,7 +208,6 @@ def save_intervention(student_id, college, plan, start_time, end_time, handler):
               (student_id, college, plan, start_time, end_time, '待执行', handler))
     conn.commit()
     conn.close()
-
 def load_interventions(status=None, college=None):
     conn = get_conn()
     sql = 'SELECT * FROM interventions'
@@ -237,7 +222,6 @@ def load_interventions(status=None, college=None):
     df = pd.read_sql(sql, conn)
     conn.close()
     return df
-
 def update_intervention_status(interv_id, status, result=''):
     conn = get_conn()
     c = conn.cursor()
