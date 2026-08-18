@@ -966,7 +966,7 @@ def render_admin_dashboard():
                 return "background-color:#ffe8e8;color:#c00000"
             else:
                 return "background-color:#fff3e0;color:#e65100"
-        st.dataframe(warn_df.style.applymap(warn_color, subset=["风险等级"]),
+                st.dataframe(warn_df.style.map(warn_color, subset=["风险等级"]),
                      hide_index=True, use_container_width=True, height=300)
 
     st.divider()
