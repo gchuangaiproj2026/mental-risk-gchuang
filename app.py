@@ -448,41 +448,50 @@ def load_user_data(username, role, college):
 
 # ===================== 顶部导航 =====================
 def render_top_nav_home():
-    nav_html = """
+    qp = st.query_params
+    current_tab = qp.get("tab", "overview")
+    tabs = [
+        ("overview", "📊 总览大屏"),
+        ("survey", "📝 心理普查"),
+        ("analysis", "📈 数据分析"),
+        ("resources", "📚 资源中心"),
+    ]
+    nav_items = ""
+    for key, label in tabs:
+        active_cls = "active" if current_tab == key else ""
+        nav_items += f'<a href="?tab={key}" class="nav-item-home {active_cls}">{label}</a>'
+    nav_html = f"""
     <style>
-        .top-nav-home { background: linear-gradient(135deg, #0F4C99, #1a6bc4); padding: 0 3rem; display: flex;
+        .top-nav-home {{ background: linear-gradient(135deg, #0F4C99, #1a6bc4); padding: 0 3rem; display: flex;
             align-items: center; justify-content: space-between; height: 84px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.20); border-radius: 16px; margin-top: 40px; margin-bottom:12px;
-            border: 1px solid rgba(255,255,255,0.10); }
-        .nav-brand { color: white; font-size: 26px; font-weight: 700; display: flex; align-items: center; gap: 14px; white-space: nowrap; }
-        .nav-brand .sub { font-size: 15px; font-weight: 400; opacity: 0.75; margin-left: 6px; }
-        .nav-menu-home { display: flex; gap:10px; flex: 1; margin: 0 2.5rem; }
-        .nav-item-home { color: rgba(255,255,255,0.75); padding: 12px 22px; border-radius:10px; font-size:17px;
-            white-space: nowrap; text-decoration: none; transition: all 0.3s; font-weight: 500; }
-        .nav-item-home:hover { color: white; background: rgba(255,255,255,0.18); }
-        .nav-item-home.active { color: white; background: rgba(255,255,255,0.26); font-weight: 600; }
-        .nav-user-home { color: rgba(255,255,255,0.92); font-size:16px; display: flex; align-items: center; gap:22px; }
-        .login-btn { background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.30); color: white;
+            border: 1px solid rgba(255,255,255,0.10); }}
+        .nav-brand {{ color: white; font-size: 26px; font-weight: 700; display: flex; align-items: center; gap: 14px; white-space: nowrap; }}
+        .nav-brand .sub {{ font-size: 15px; font-weight: 400; opacity: 0.75; margin-left: 6px; }}
+        .nav-menu-home {{ display: flex; gap:10px; flex: 1; margin: 0 2.5rem; }}
+        .nav-item-home {{ color: rgba(255,255,255,0.75); padding: 12px 22px; border-radius:10px; font-size:17px;
+            white-space: nowrap; text-decoration: none; transition: all 0.3s; font-weight: 500; cursor:pointer; }}
+        .nav-item-home:hover {{ color: white; background: rgba(255,255,255,0.18); }}
+        .nav-item-home.active {{ color: white; background: rgba(255,255,255,0.26); font-weight: 600; }}
+        .nav-user-home {{ color: rgba(255,255,255,0.92); font-size:16px; display: flex; align-items: center; gap:22px; }}
+        .login-btn {{ background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.30); color: white;
             padding:10px 28px; border-radius:10px; cursor: pointer; font-size:16px; transition: all 0.3s;
-            text-decoration: none; font-weight: 500; }
-        .login-btn:hover { background: rgba(255,255,255,0.36); transform: translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,0.22); }
-        .nav-divider { color: rgba(255,255,255,0.25); font-size:24px; }
-        @media (max-width: 768px) {
-            .top-nav-home { padding: 0 1rem; flex-wrap: wrap; height: auto; min-height:70px; margin-top:20px;
-                border-radius:10px; padding:0.8rem 1rem; }
-            .nav-brand { font-size:20px; } .nav-brand .sub { display:none; }
-            .nav-item-home { font-size:14px; padding:8px 14px; }
-            .nav-user-home { font-size:14px; gap:12px; } .login-btn { padding:7px 16px; font-size:14px; }
-            .nav-menu-home { margin:0 0.4rem; gap:6px; flex-wrap:wrap; } .nav-divider { display:none; }
-        }
+            text-decoration: none; font-weight: 500; }}
+        .login-btn:hover {{ background: rgba(255,255,255,0.36); transform: translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,0.22); }}
+        .nav-divider {{ color: rgba(255,255,255,0.25); font-size:24px; }}
+        @media (max-width: 768px) {{
+            .top-nav-home {{ padding: 0 1rem; flex-wrap: wrap; height: auto; min-height:70px; margin-top:20px;
+                border-radius:10px; padding:0.8rem 1rem; }}
+            .nav-brand {{ font-size:20px; }} .nav-brand .sub {{ display:none; }}
+            .nav-item-home {{ font-size:14px; padding:8px 14px; }}
+            .nav-user-home {{ font-size:14px; gap:12px; }} .login-btn {{ padding:7px 16px; font-size:14px; }}
+            .nav-menu-home {{ margin:0 0.4rem; gap:6px; flex-wrap:wrap; }} .nav-divider {{ display:none; }}
+        }}
     </style>
     <div class="top-nav-home">
         <div class="nav-brand">🧠 心理监测平台 <span class="sub">| 健康校园 · 智能预警</span></div>
         <div class="nav-menu-home">
-            <span class="nav-item-home active">📊 总览大屏</span>
-            <span class="nav-item-home">📝 心理普查</span>
-            <span class="nav-item-home">📈 数据分析</span>
-            <span class="nav-item-home">📚 资源中心</span>
+            {nav_items}
         </div>
         <div class="nav-user-home">
             <span style="opacity:0.65;">👤 访客</span>
@@ -492,7 +501,6 @@ def render_top_nav_home():
     </div>
     """
     st.markdown(nav_html, unsafe_allow_html=True)
-    qp = st.query_params
     if "login" in qp:
         st.session_state["page_root"] = "role_login"
         st.query_params.clear()
@@ -526,6 +534,134 @@ def render_top_bar():
 # ===================== 访客首页 =====================
 def render_home_page():
     render_top_nav_home()
+    tab = st.query_params.get("tab", "overview")
+
+    # ===== 心理普查页 =====
+    if tab == "survey":
+        st.markdown("""
+        <div style="text-align:center;padding:0.5rem 0 1rem 0;">
+            <span style="font-size:32px;font-weight:bold;color:#0F4C99;">📝 心理普查</span>
+            <span style="font-size:18px;color:#666;margin-left:20px;">面向全体学生的心理健康状况普查</span>
+        </div>
+        """, unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(_metric_card_html("普查量表", "SCL-90 / PHQ-9", "焦虑·抑郁·压力", "#0F4C99", "📋"), unsafe_allow_html=True)
+        with c2:
+            st.markdown(_metric_card_html("筛查算法", "贝叶斯+Copula", "变点检测·相依分析", "#1a6bc4", "🧠"), unsafe_allow_html=True)
+        with c3:
+            st.markdown(_metric_card_html("风险分级", "高危/中危/低危", "三级预警机制", "#2E7D32", "🚦"), unsafe_allow_html=True)
+        st.divider()
+        st.markdown("### 普查流程")
+        steps = [
+            ("1️⃣ 学生测评", "学生在线填写心理量表，数据实时入库"),
+            ("2️⃣ 智能筛查", "教师上传普查数据，系统自动运行贝叶斯变点检测与Copula相依分析"),
+            ("3️⃣ 风险分级", "按综合风险分自动划分高危、中危、低危三个等级"),
+            ("4️⃣ 干预跟进", "高危学生自动进入预警台账，辅导员一对一跟进"),
+        ]
+        for title, desc in steps:
+            st.markdown(f"- **{title}**：{desc}")
+        st.divider()
+        st.info("💡 教师登录后可在「教师端 → 上传与筛查」中上传普查数据表并运行智能筛查算法。")
+        if st.button("🔑 登录进入教师端", use_container_width=True):
+            st.session_state["page_root"] = "role_login"
+            st.rerun()
+        return
+
+    # ===== 数据分析页 =====
+    if tab == "analysis":
+        st.markdown("""
+        <div style="text-align:center;padding:0.5rem 0 1rem 0;">
+            <span style="font-size:32px;font-weight:bold;color:#0F4C99;">📈 数据分析</span>
+            <span style="font-size:18px;color:#666;margin-left:20px;">多维度心理健康数据可视化分析</span>
+        </div>
+        """, unsafe_allow_html=True)
+        demo = st.session_state.get("use_demo", False)
+        col_u, col_d = st.columns([3, 1])
+        with col_u:
+            up = st.file_uploader("📤 上传测评数据表进行分析", type=["xlsx", "xls", "csv"], key="analysis_up")
+        with col_d:
+            demo_toggle_widget("打开演示数据查看分析效果")
+        df = None
+        if up is not None:
+            df = parse_upload(up)
+        if df is None and demo:
+            df = quick_risk(demo_survey())
+            st.info("当前展示【演示数据】分析结果")
+        if df is None:
+            st.info("👆 请上传测评数据表，或打开演示数据预览分析图表。")
+            return
+        df = quick_risk(df)
+        dims = [c for c in KNOWN_DIMS if c in df.columns]
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**📊 风险等级分布**")
+            st.pyplot(chart_risk_pie(df))
+        with c2:
+            st.markdown("**📈 综合风险分分布**")
+            st.pyplot(chart_hist(df, "综合风险分" if "综合风险分" in df.columns else "总分"))
+        st.divider()
+        if len(dims) >= 2:
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown("**📦 各维度得分箱线图**")
+                st.pyplot(chart_dims_box(df, dims))
+            with c2:
+                st.markdown("**🔗 维度相关性热力图**")
+                st.pyplot(chart_corr(df, dims))
+        st.divider()
+        st.markdown("**🔍 风险散点分布**")
+        st.pyplot(chart_copula_scatter(df))
+        return
+
+    # ===== 资源中心页 =====
+    if tab == "resources":
+        st.markdown("""
+        <div style="text-align:center;padding:0.5rem 0 1rem 0;">
+            <span style="font-size:32px;font-weight:bold;color:#0F4C99;">📚 资源中心</span>
+            <span style="font-size:18px;color:#666;margin-left:20px;">心理健康科普与自助资源</span>
+        </div>
+        """, unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("### 🧘 自助调节")
+            st.markdown("""
+            - **正念冥想**：每天10分钟正念练习，缓解焦虑情绪
+            - **睡眠卫生**：规律作息，睡前1小时远离电子屏幕
+            - **运动减压**：每周3次有氧运动，每次30分钟以上
+            - **社交支持**：主动与家人朋友交流，避免独处封闭
+            """)
+            st.markdown("### 📞 求助渠道")
+            st.markdown("""
+            - **校内心理咨询中心**：预约一对一专业咨询
+            - **全国心理援助热线**：400-161-9995
+            - **北京心理危机研究与干预中心**：010-82951332
+            - **希望24热线**：400-161-9995
+            """)
+        with c2:
+            st.markdown("### 📖 科普知识")
+            st.markdown("""
+            **焦虑症常见表现**
+            - 持续紧张、坐立不安
+            - 心悸、出汗、手抖
+            - 睡眠困难、注意力不集中
+
+            **抑郁症常见表现**
+            - 持续情绪低落、兴趣减退
+            - 精力下降、疲劳感
+            - 自我评价低、自责
+            - 睡眠和食欲改变
+
+            **何时需要专业帮助**
+            - 症状持续2周以上
+            - 严重影响学习、生活和社交
+            - 出现自伤或自杀念头
+            """)
+        st.divider()
+        st.warning("⚠️ 本平台资源仅供科普参考，不能替代专业医疗诊断。如有需要请及时就医或联系专业心理咨询师。")
+        return
+
+    # ===== 总览大屏（默认页） =====
     st.markdown("""
     <div style="text-align:center;padding:0.5rem 0 1rem 0;">
         <span style="font-size:32px;font-weight:bold;color:#0F4C99;">🏠 心理健康监测总览</span>
