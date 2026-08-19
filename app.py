@@ -469,10 +469,10 @@ def render_top_nav_home():
         .nav-brand {{ color: white; font-size: 26px; font-weight: 700; display: flex; align-items: center; gap: 14px; white-space: nowrap; }}
         .nav-brand .sub {{ font-size: 15px; font-weight: 400; opacity: 0.75; margin-left: 6px; }}
         .nav-menu-home {{ display: flex; gap:10px; flex: 1; margin: 0 2.5rem; }}
-        .nav-item-home {{ color: rgba(255,255,255,0.75); padding: 12px 22px; border-radius:10px; font-size:17px;
+        .nav-item-home {{ color: #ffffff; padding: 12px 22px; border-radius:10px; font-size:17px;
             white-space: nowrap; text-decoration: none; transition: all 0.3s; font-weight: 500; cursor:pointer; }}
-        .nav-item-home:hover {{ color: white; background: rgba(255,255,255,0.18); }}
-        .nav-item-home.active {{ color: white; background: rgba(255,255,255,0.26); font-weight: 600; }}
+        .nav-item-home:hover {{ color: #ffffff; background: rgba(255,255,255,0.25); }}
+        .nav-item-home.active {{ color: #0F4C99; background: #ffffff; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }}
         .nav-user-home {{ color: rgba(255,255,255,0.92); font-size:16px; display: flex; align-items: center; gap:22px; }}
         .login-btn {{ background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.30); color: white;
             padding:10px 28px; border-radius:10px; cursor: pointer; font-size:16px; transition: all 0.3s;
