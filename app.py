@@ -458,8 +458,11 @@ def render_top_nav_home():
     ]
     nav_items = ""
     for key, label in tabs:
-        active_cls = "active" if current_tab == key else ""
-        nav_items += f'<a href="?tab={key}" class="nav-item-home {active_cls}">{label}</a>'
+        if current_tab == key:
+            style = "color:#0F4C99;background:#ffffff;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);"
+        else:
+            style = "color:#ffffff;background:rgba(0,0,0,0.22);font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,0.5);"
+        nav_items += f'<a href="?tab={key}" style="{style}" class="nav-item-home">{label}</a>'
     nav_html = f"""
     <style>
         .top-nav-home {{ background: linear-gradient(135deg, #0F4C99, #1a6bc4); padding: 0 3rem; display: flex;
@@ -469,9 +472,9 @@ def render_top_nav_home():
         .nav-brand {{ color: white; font-size: 26px; font-weight: 700; display: flex; align-items: center; gap: 14px; white-space: nowrap; }}
         .nav-brand .sub {{ font-size: 15px; font-weight: 400; opacity: 0.75; margin-left: 6px; }}
         .nav-menu-home {{ display: flex; gap:10px; flex: 1; margin: 0 2.5rem; }}
-        .nav-item-home {{ color: #ffffff; padding: 12px 22px; border-radius:10px; font-size:17px;
+        .nav-item-home {{ color: #ffffff; padding: 12px 22px; border-radius:10px; font-size:17px; font-weight:600; text-shadow: 0 1px 4px rgba(0,0,0,0.5); background: rgba(0,0,0,0.18);
             white-space: nowrap; text-decoration: none; transition: all 0.3s; font-weight: 500; cursor:pointer; }}
-        .nav-item-home:hover {{ color: #ffffff; background: rgba(255,255,255,0.25); }}
+        .nav-item-home:hover {{ color: #ffffff; background: rgba(255,255,255,0.30); text-shadow: 0 1px 4px rgba(0,0,0,0.5); }}
         .nav-item-home.active {{ color: #0F4C99; background: #ffffff; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }}
         .nav-user-home {{ color: rgba(255,255,255,0.92); font-size:16px; display: flex; align-items: center; gap:22px; }}
         .login-btn {{ background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.30); color: white;
