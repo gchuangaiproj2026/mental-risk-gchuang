@@ -1075,7 +1075,7 @@ def generate_word_report(batch_name, tau, df, stat_df, fig_pie):
     img_stream.seek(0)
     doc.add_picture(img_stream, width=Inches(5))
     doc.add_heading("高危学生名单", level=2)
-    high_df = df[df["风险等级"] == "高危"] if "风险等级" in df.columns else pd.DataFrame()
+    high_df = df[df["风险等级"] == "高危"].reset_index(drop=True) if "风险等级" in df.columns else pd.DataFrame()
     if len(high_df):
         cols = list(high_df.columns)[:8]
         table2 = doc.add_table(rows=len(high_df) + 1, cols=len(cols))
@@ -1211,7 +1211,7 @@ def render_admin_page():
             with c2:
                 new_status = st.selectbox("新状态", ["待跟进", "干预中", "已转介", "已结案"], key="al_ns")
             with c3:
-                if st.button("更新", use_container_width=True):
+                if st.button("更新", use_container_width=True, key="al_update_btn"):
                     idx = options.index(sel)
                     row = view.iloc[idx]
                     if "id" in row:
@@ -1276,7 +1276,7 @@ def render_admin_page():
             with c2:
                 new_status = st.selectbox("新状态", ["待执行", "干预中", "已结案"], key="in_ns")
             with c3:
-                if st.button("更新", use_container_width=True):
+                if st.button("更新", use_container_width=True, key="in_update_btn"):
                     idx = options.index(sel)
                     row = view.iloc[idx]
                     if "id" in row:
